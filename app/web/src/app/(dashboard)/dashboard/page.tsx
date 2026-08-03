@@ -96,6 +96,25 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* Faculty Analytics Banner */}
+        {isFaculty && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-accent/10 via-primary/10 to-transparent border border-accent/20">
+            <div>
+              <h3 className="font-bold text-foreground text-sm">
+                Recruitment Analytics & Insights
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Inspect branch-wise placement percentages, CTC distributions, and drive conversion funnels.
+              </p>
+            </div>
+            <Link href="/analytics">
+              <Button size="sm" variant="secondary">
+                View Full Analytics →
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Recent Drives */}
         <div>
           <div className="flex items-center justify-between mb-4">
