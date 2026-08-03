@@ -65,6 +65,12 @@ export interface Application {
   driveId: string;
   companyName: string;
   role: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  branch: string;
+  cgpa: number;
+  email: string;
   currentStage: ApplicationStage;
   appliedDate: string;
   lastUpdated: string;
@@ -246,68 +252,148 @@ export const mockDrives: Drive[] = [
   },
 ];
 
-// ── Mock Applications ────────────────────────────────────────
+// ── Mock Student Pool & Generator ────────────────────────────
 
-export const mockApplications: Application[] = [
-  {
-    id: "app-001",
-    driveId: "drv-002",
-    companyName: "Microsoft",
-    role: "Software Engineer",
-    currentStage: "round-1",
-    appliedDate: "2026-07-26T14:30:00Z",
-    lastUpdated: "2026-08-03T09:00:00Z",
-    roundResults: [
-      { roundName: "Online Coding Round", status: "passed", date: "2026-08-01T14:00:00Z" },
-      { roundName: "Technical Interview", status: "pending" },
-      { roundName: "Design Round", status: "upcoming" },
-      { roundName: "HR / Managerial", status: "upcoming" },
-    ],
-  },
-  {
-    id: "app-002",
-    driveId: "drv-004",
-    companyName: "Deloitte",
-    role: "Analyst — Technology Consulting",
-    currentStage: "shortlisted",
-    appliedDate: "2026-07-22T10:00:00Z",
-    lastUpdated: "2026-08-02T16:00:00Z",
-    roundResults: [
-      { roundName: "Aptitude Test", status: "passed", date: "2026-08-05T09:00:00Z" },
-      { roundName: "Group Discussion", status: "pending" },
-      { roundName: "Technical + HR", status: "upcoming" },
-    ],
-  },
-  {
-    id: "app-003",
-    driveId: "drv-006",
-    companyName: "Tata Consultancy Services",
-    role: "Systems Engineer",
-    currentStage: "offered",
-    appliedDate: "2026-07-16T08:00:00Z",
-    lastUpdated: "2026-08-01T11:00:00Z",
-    roundResults: [
-      { roundName: "TCS NQT", status: "passed", date: "2026-07-30T10:00:00Z" },
-      { roundName: "Technical Interview", status: "passed", date: "2026-07-31T15:00:00Z" },
-      { roundName: "Managerial + HR", status: "passed", date: "2026-08-01T11:00:00Z" },
-    ],
-  },
-  {
-    id: "app-004",
-    driveId: "drv-001",
-    companyName: "Google",
-    role: "SDE Intern",
-    currentStage: "applied",
-    appliedDate: "2026-08-03T12:00:00Z",
-    lastUpdated: "2026-08-03T12:00:00Z",
-    roundResults: [
-      { roundName: "Online Assessment", status: "upcoming" },
-      { roundName: "Technical Interview 1", status: "upcoming" },
-      { roundName: "Technical Interview 2", status: "upcoming" },
-      { roundName: "HR Round", status: "upcoming" },
-    ],
-  },
+interface StudentProfileSeed {
+  name: string;
+  rollNumber: string;
+  branch: string;
+  cgpa: number;
+}
+
+const mockStudentSeeds: StudentProfileSeed[] = [
+  { name: "Pooja Hegde", rollNumber: "21CS012", branch: "CSE", cgpa: 9.1 },
+  { name: "Rahul Verma", rollNumber: "21IS045", branch: "ISE", cgpa: 8.7 },
+  { name: "Sneha Rao", rollNumber: "21EC089", branch: "ECE", cgpa: 8.2 },
+  { name: "Karthik Nair", rollNumber: "21CS094", branch: "CSE", cgpa: 7.9 },
+  { name: "Ananya Deshmukh", rollNumber: "21IS019", branch: "ISE", cgpa: 8.5 },
+  { name: "Vikram Patil", rollNumber: "21EE033", branch: "EEE", cgpa: 7.4 },
+  { name: "Divya Menon", rollNumber: "21CS071", branch: "CSE", cgpa: 9.4 },
+  { name: "Rohan Das", rollNumber: "21ME056", branch: "ME", cgpa: 7.1 },
+  { name: "Meera Sen", rollNumber: "21EC024", branch: "ECE", cgpa: 8.8 },
+  { name: "Sanjay Gupta", rollNumber: "21CS110", branch: "CSE", cgpa: 7.6 },
+  { name: "Aditi Rao", rollNumber: "21IS088", branch: "ISE", cgpa: 8.0 },
+  { name: "Nikhil Joshi", rollNumber: "21CE015", branch: "CE", cgpa: 6.9 },
 ];
+
+/** Helper to generate realistic round results based on target stage */
+export function buildRoundResultsForStage(rounds: RoundInfo[], stage: ApplicationStage): RoundResult[] {
+  return rounds.map((r, idx) => {
+    if (stage === "applied") {
+      return { roundName: r.name, status: "upcoming" };
+    }
+    if (stage === "shortlisted") {
+      return idx === 0
+        ? { roundName: r.name, status: "pending" }
+        : { roundName: r.name, status: "upcoming" };
+    }
+    if (stage === "round-1") {
+      if (idx === 0) return { roundName: r.name, status: "passed", date: "2026-08-01T10:00:00Z" };
+      if (idx === 1) return { roundName: r.name, status: "pending" };
+      return { roundName: r.name, status: "upcoming" };
+    }
+    if (stage === "round-2") {
+      if (idx <= 1) return { roundName: r.name, status: "passed", date: "2026-08-02T14:00:00Z" };
+      if (idx === 2) return { roundName: r.name, status: "pending" };
+      return { roundName: r.name, status: "upcoming" };
+    }
+    if (stage === "round-3") {
+      if (idx <= 2) return { roundName: r.name, status: "passed", date: "2026-08-03T11:00:00Z" };
+      if (idx === 3) return { roundName: r.name, status: "pending" };
+      return { roundName: r.name, status: "upcoming" };
+    }
+    if (stage === "offered") {
+      return { roundName: r.name, status: "passed", date: "2026-08-01T16:00:00Z" };
+    }
+    if (stage === "rejected") {
+      if (idx === 0) return { roundName: r.name, status: "failed" };
+      return { roundName: r.name, status: "upcoming" };
+    }
+    return { roundName: r.name, status: "upcoming" };
+  });
+}
+
+/** Programmatic factory to generate 8-12 applicants per drive */
+export function generateMockApplications(drives: Drive[]): Application[] {
+  const stageDistribution: ApplicationStage[] = [
+    "applied",
+    "shortlisted",
+    "round-1",
+    "round-2",
+    "offered",
+    "rejected",
+    "shortlisted",
+    "round-1",
+    "applied",
+    "offered",
+  ];
+
+  const applications: Application[] = [];
+
+  // Seed Arjun Mehta's known applications first
+  const arjunApps: { driveId: string; stage: ApplicationStage }[] = [
+    { driveId: "drv-002", stage: "round-1" },
+    { driveId: "drv-004", stage: "shortlisted" },
+    { driveId: "drv-006", stage: "offered" },
+    { driveId: "drv-001", stage: "applied" },
+  ];
+
+  for (const a of arjunApps) {
+    const drive = drives.find((d) => d.id === a.driveId);
+    if (!drive) continue;
+    applications.push({
+      id: `app-arjun-${drive.id}`,
+      driveId: drive.id,
+      companyName: drive.companyName,
+      role: drive.role,
+      studentId: mockStudent.id,
+      studentName: mockStudent.name,
+      rollNumber: mockStudent.rollNumber,
+      branch: mockStudent.branch,
+      cgpa: mockStudent.cgpa,
+      email: mockStudent.email,
+      currentStage: a.stage,
+      appliedDate: "2026-07-26T14:30:00Z",
+      lastUpdated: "2026-08-03T09:00:00Z",
+      roundResults: buildRoundResultsForStage(drive.rounds, a.stage),
+    });
+  }
+
+  // Programmatically generate applicants for every drive
+  drives.forEach((drive, driveIdx) => {
+    // Select 8 to 11 students per drive
+    mockStudentSeeds.forEach((seed, seedIdx) => {
+      // Exclude if branch not eligible
+      if (!drive.eligibility.branches.includes(seed.branch)) return;
+
+      const stage = stageDistribution[(seedIdx + driveIdx) % stageDistribution.length];
+      const appId = `app-${drive.id}-${seed.rollNumber.toLowerCase()}`;
+
+      applications.push({
+        id: appId,
+        driveId: drive.id,
+        companyName: drive.companyName,
+        role: drive.role,
+        studentId: `stu-${seed.rollNumber}`,
+        studentName: seed.name,
+        rollNumber: seed.rollNumber,
+        branch: seed.branch,
+        cgpa: seed.cgpa,
+        email: `${seed.name.toLowerCase().replace(/\s+/g, ".")}@college.edu`,
+        currentStage: stage,
+        appliedDate: new Date(Date.now() - (seedIdx + 1) * 86400000 * 2).toISOString(),
+        lastUpdated: new Date(Date.now() - seedIdx * 3600000 * 4).toISOString(),
+        roundResults: buildRoundResultsForStage(drive.rounds, stage),
+      });
+    });
+  });
+
+  return applications;
+}
+
+// ── Default Mock Applications ────────────────────────────────
+
+export const mockApplications: Application[] = generateMockApplications(mockDrives);
 
 // ── Mock Notifications ───────────────────────────────────────
 
@@ -413,3 +499,20 @@ export function deadlineCountdown(deadline: string): string {
   if (days > 0) return `${days}d ${hours}h left`;
   return `${hours}h left`;
 }
+
+/** Get applications submitted by a specific student */
+export function getApplicationsForStudent(
+  applications: Application[],
+  studentId: string
+): Application[] {
+  return applications.filter((a) => a.studentId === studentId);
+}
+
+/** Get applications for a specific drive */
+export function getApplicationsForDrive(
+  applications: Application[],
+  driveId: string
+): Application[] {
+  return applications.filter((a) => a.driveId === driveId);
+}
+

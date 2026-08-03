@@ -2,29 +2,35 @@
 
 import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePlacement } from "@/context/PlacementContext";
 import Header from "@/components/layout/Header";
 import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 import DriveCard from "@/components/drives/DriveCard";
-import { mockDrives } from "@/lib/mock-data";
+import CreateDriveModal from "@/components/drives/CreateDriveModal";
 
 type SortOption = "deadline" | "ctc-high" | "ctc-low" | "company";
 type StatusFilter = "all" | "open" | "ongoing" | "closed";
 
 export default function DrivesPage() {
   const { user } = useAuth();
+  const { drives, addDrive, updateDriveStatus } = usePlacement();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [eligibleOnly, setEligibleOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("deadline");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const isFaculty = user?.role === "faculty";
 
   const filtered = useMemo(() => {
-    let drives = [...mockDrives];
+    let list = [...drives];
 
     // Search
     if (search.trim()) {
       const q = search.toLowerCase();
-      drives = drives.filter(
+      list = list.filter(
         (d) =>
           d.companyName.toLowerCase().includes(q) ||
           d.role.toLowerCase().includes(q)
@@ -33,12 +39,12 @@ export default function DrivesPage() {
 
     // Status filter
     if (statusFilter !== "all") {
-      drives = drives.filter((d) => d.status === statusFilter);
+      list = list.filter((d) => d.status === statusFilter);
     }
 
-    // Eligible only
-    if (eligibleOnly && user) {
-      drives = drives.filter((d) => {
+    // Eligible only (for students)
+    if (eligibleOnly && user && !isFaculty) {
+      list = list.filter((d) => {
         return (
           user.cgpa >= d.eligibility.minCgpa &&
           d.eligibility.branches.includes(user.branch)
@@ -47,7 +53,7 @@ export default function DrivesPage() {
     }
 
     // Sort
-    drives.sort((a, b) => {
+    list.sort((a, b) => {
       switch (sortBy) {
         case "deadline":
           return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
@@ -62,17 +68,46 @@ export default function DrivesPage() {
       }
     });
 
-    return drives;
-  }, [search, statusFilter, eligibleOnly, sortBy, user]);
+    return list;
+  }, [search, statusFilter, eligibleOnly, sortBy, user, isFaculty, drives]);
 
   return (
     <>
       <Header
-        title="Placement Drives"
-        subtitle={`${mockDrives.filter((d) => d.status === "open").length} active drives`}
+        title={isFaculty ? "Placement Drives Management" : "Placement Drives"}
+        subtitle={
+          isFaculty
+            ? "Manage hiring drives, update round stages, and track applicant pipelines"
+            : `${drives.filter((d) => d.status === "open").length} active drives open for application`
+        }
       />
 
       <div className="p-6 space-y-6">
+        {/* Faculty Banner / Quick Action */}
+        {isFaculty && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-transparent border border-primary/20">
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                TPC Admin Controls
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Create new campus drives, close expired registrations, and advance student round stages.
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              icon={
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              }
+            >
+              Post New Drive
+            </Button>
+          </div>
+        )}
+
         {/* Filters bar */}
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
@@ -123,26 +158,28 @@ export default function DrivesPage() {
           </select>
         </div>
 
-        {/* Eligible toggle */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEligibleOnly(!eligibleOnly)}
-            className={`
-              relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer
-              ${eligibleOnly ? "bg-primary" : "bg-border"}
-            `}
-          >
-            <span
+        {/* Eligible toggle (student only) */}
+        {!isFaculty && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEligibleOnly(!eligibleOnly)}
               className={`
-                absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
-                ${eligibleOnly ? "translate-x-4" : ""}
+                relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer
+                ${eligibleOnly ? "bg-primary" : "bg-border"}
               `}
-            />
-          </button>
-          <span className="text-sm text-muted-foreground">
-            Show only eligible drives
-          </span>
-        </div>
+            >
+              <span
+                className={`
+                  absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
+                  ${eligibleOnly ? "translate-x-4" : ""}
+                `}
+              />
+            </button>
+            <span className="text-sm text-muted-foreground">
+              Show only eligible drives
+            </span>
+          </div>
+        )}
 
         {/* Results count */}
         <p className="text-sm text-muted-foreground">
@@ -153,7 +190,12 @@ export default function DrivesPage() {
         {filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((drive) => (
-              <DriveCard key={drive.id} drive={drive} currentUser={user} />
+              <DriveCard
+                key={drive.id}
+                drive={drive}
+                currentUser={user}
+                onToggleStatus={(driveId, newStatus) => updateDriveStatus(driveId, newStatus)}
+              />
             ))}
           </div>
         ) : (
@@ -173,6 +215,15 @@ export default function DrivesPage() {
           </div>
         )}
       </div>
+
+      {/* Create Drive Modal */}
+      {isCreateModalOpen && (
+        <CreateDriveModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={(newDrive) => addDrive(newDrive)}
+        />
+      )}
     </>
   );
 }

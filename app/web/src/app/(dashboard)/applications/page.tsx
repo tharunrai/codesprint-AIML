@@ -1,26 +1,72 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { usePlacement } from "@/context/PlacementContext";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import {
-  mockApplications,
   getStageLabel,
   type ApplicationStage,
   type RoundResult,
 } from "@/lib/mock-data";
 
 export default function ApplicationsPage() {
+  const { user } = useAuth();
+  const { applications, drives } = usePlacement();
+  const [selectedDriveId, setSelectedDriveId] = useState<string>("all");
+
+  const isFaculty = user?.role === "faculty";
+
+  // If student, filter applications belonging to this student
+  const studentApplications = applications.filter((app) =>
+    user ? app.studentId === user.id || app.email === user.email : true
+  );
+
+  const displayApplications = isFaculty
+    ? selectedDriveId === "all"
+      ? applications
+      : applications.filter((a) => a.driveId === selectedDriveId)
+    : studentApplications;
+
   return (
     <>
       <Header
-        title="My Applications"
-        subtitle={`${mockApplications.length} total applications`}
+        title={isFaculty ? "Applicant Pipeline Overview" : "My Applications"}
+        subtitle={
+          isFaculty
+            ? `${applications.length} total applicant records across ${drives.length} drives`
+            : `${studentApplications.length} active applications tracked in real-time`
+        }
       />
 
-      <div className="p-6 space-y-4 max-w-4xl">
-        {mockApplications.length === 0 ? (
+      <div className="p-6 space-y-6 max-w-5xl">
+        {/* Faculty Drive Selector */}
+        {isFaculty && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border">
+            <div>
+              <span className="text-sm font-semibold text-foreground">Filter by Drive:</span>
+              <p className="text-xs text-muted-foreground">Select a drive to inspect candidate pipeline progressions</p>
+            </div>
+            <select
+              value={selectedDriveId}
+              onChange={(e) => setSelectedDriveId(e.target.value)}
+              className="h-10 px-3 rounded-lg text-sm bg-surface-hover border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+            >
+              <option value="all">All Drives ({applications.length})</option>
+              {drives.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.companyName} — {d.role}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {displayApplications.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,18 +75,23 @@ export default function ApplicationsPage() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-foreground">
-              No applications yet
+              No applications found
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Browse open drives and start applying!
+            <p className="text-sm text-muted-foreground mt-1 mb-4">
+              {isFaculty
+                ? "No students have applied to this drive yet."
+                : "Browse open drives and submit your first application!"}
             </p>
+            <Link href="/drives">
+              <Button>Browse Drives</Button>
+            </Link>
           </div>
         ) : (
-          mockApplications.map((app) => (
+          displayApplications.map((app) => (
             <Link key={app.id} href={`/drives/${app.driveId}`}>
               <Card hover className="mb-4">
                 {/* Header row */}
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0">
                       <span className="text-primary font-bold">
@@ -48,9 +99,16 @@ export default function ApplicationsPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">
-                        {app.companyName}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground">
+                          {app.companyName}
+                        </h3>
+                        {isFaculty && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                            {app.studentName} ({app.rollNumber})
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {app.role}
                       </p>
@@ -59,7 +117,7 @@ export default function ApplicationsPage() {
                   <StageBadge stage={app.currentStage} />
                 </div>
 
-                {/* Round pipeline */}
+                {/* Round pipeline visualization */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-2">
                   {app.roundResults.map((round, idx) => (
                     <div key={idx} className="flex items-center">
@@ -88,12 +146,20 @@ export default function ApplicationsPage() {
                   </span>
                   <span>•</span>
                   <span>
-                    Updated{" "}
+                    Last Updated{" "}
                     {new Date(app.lastUpdated).toLocaleDateString("en-IN", {
                       day: "numeric",
                       month: "short",
                     })}
                   </span>
+                  {isFaculty && (
+                    <>
+                      <span>•</span>
+                      <span className="text-primary font-medium">
+                        Click to manage drive & rounds →
+                      </span>
+                    </>
+                  )}
                 </div>
               </Card>
             </Link>

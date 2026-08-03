@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { mockNotifications, type Notification } from "@/lib/mock-data";
+import { usePlacement } from "@/context/PlacementContext";
+import { type Notification } from "@/lib/mock-data";
 import Badge from "@/components/ui/Badge";
 
 interface HeaderProps {
@@ -13,10 +14,11 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle }: HeaderProps) {
   const { user } = useAuth();
+  const { notifications, markNotificationRead, markAllNotificationsRead } = usePlacement();
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = mockNotifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
             >
               <BellIcon className="w-5 h-5 text-muted-foreground" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -59,25 +61,51 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
             {/* Notification dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground">
-                    Notifications
-                  </span>
-                  <Badge variant="info" size="sm">
-                    {unreadCount} new
-                  </Badge>
+              <div className="absolute right-0 top-full mt-2 w-84 bg-surface border border-border rounded-2xl shadow-xl overflow-hidden z-50 animate-fade-in">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface-hover/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      Notifications
+                    </span>
+                    {unreadCount > 0 && (
+                      <Badge variant="info" size="sm">
+                        {unreadCount} new
+                      </Badge>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAllNotificationsRead()}
+                      className="text-xs text-primary hover:underline font-medium cursor-pointer"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
+
                 <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                  {mockNotifications.map((notif) => (
-                    <NotificationItem key={notif.id} notification={notif} />
-                  ))}
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <NotificationItem
+                        key={notif.id}
+                        notification={notif}
+                        onItemClick={() => {
+                          markNotificationRead(notif.id);
+                          setShowNotifications(false);
+                        }}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* User avatar */}
+          {/* User avatar & role indicator */}
           {user && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
@@ -89,9 +117,14 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     .slice(0, 2)}
                 </span>
               </div>
-              <span className="text-sm font-medium text-foreground hidden sm:block">
-                {user.name.split(" ")[0]}
-              </span>
+              <div className="hidden sm:block text-left">
+                <span className="text-sm font-medium text-foreground block leading-tight">
+                  {user.name.split(" ")[0]}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  {user.role}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -102,7 +135,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
 /* ── Notification item ─────────────────────────────────────── */
 
-function NotificationItem({ notification }: { notification: Notification }) {
+function NotificationItem({
+  notification,
+  onItemClick,
+}: {
+  notification: Notification;
+  onItemClick: () => void;
+}) {
   const typeVariant: Record<Notification["type"], "info" | "success" | "warning" | "danger"> = {
     info: "info",
     success: "success",
@@ -115,9 +154,10 @@ function NotificationItem({ notification }: { notification: Notification }) {
   return (
     <Link
       href={notification.link || "#"}
+      onClick={onItemClick}
       className={`
         block px-4 py-3 hover:bg-surface-hover transition-colors
-        ${notification.read ? "opacity-60" : ""}
+        ${notification.read ? "opacity-60" : "bg-primary/5"}
       `}
     >
       <div className="flex items-start gap-3">
@@ -148,7 +188,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
 function getTimeAgo(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);

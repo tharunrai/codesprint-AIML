@@ -1,47 +1,58 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { usePlacement } from "@/context/PlacementContext";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import {
-  mockDrives,
-  mockApplications,
   formatCTC,
   getStageLabel,
   deadlineCountdown,
+  type ApplicationStage,
 } from "@/lib/mock-data";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { drives, applications } = usePlacement();
 
-  const activeDrives = mockDrives.filter((d) => d.status === "open").length;
-  const appliedCount = mockApplications.length;
-  const shortlisted = mockApplications.filter(
+  const isFaculty = user?.role === "faculty";
+
+  // Student specific metrics
+  const myApplications = applications.filter(
+    (a) => a.studentId === user?.id || a.email === user?.email
+  );
+
+  const activeDrives = drives.filter((d) => d.status === "open").length;
+  const appliedCount = isFaculty ? applications.length : myApplications.length;
+  const shortlisted = (isFaculty ? applications : myApplications).filter(
     (a) => a.currentStage !== "applied" && a.currentStage !== "rejected"
   ).length;
-  const offers = mockApplications.filter(
+  const offers = (isFaculty ? applications : myApplications).filter(
     (a) => a.currentStage === "offered"
   ).length;
 
-  const recentDrives = mockDrives
-    .filter((d) => d.status === "open")
-    .slice(0, 3);
+  const recentDrives = drives.slice(0, 3);
+  const recentApplications = (isFaculty ? applications : myApplications).slice(0, 4);
 
   return (
     <>
       <Header
-        title={`Welcome back, ${user?.name?.split(" ")[0] || "Student"}`}
-        subtitle="Here's your placement overview"
+        title={`Welcome back, ${user?.name?.split(" ")[0] || "User"}`}
+        subtitle={
+          isFaculty
+            ? "TPC Placement Dashboard & Analytics Overview"
+            : "Here's your live placement progress and upcoming milestones"
+        }
       />
 
       <div className="p-6 space-y-6">
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Active Drives"
+            label={isFaculty ? "Total Active Drives" : "Active Drives"}
             value={activeDrives}
             icon={
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +63,7 @@ export default function DashboardPage() {
             color="primary"
           />
           <StatCard
-            label="Applied"
+            label={isFaculty ? "Total Applications" : "Applied"}
             value={appliedCount}
             icon={
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,7 +74,7 @@ export default function DashboardPage() {
             color="accent"
           />
           <StatCard
-            label="Shortlisted"
+            label={isFaculty ? "In Progress / Shortlisted" : "Shortlisted"}
             value={shortlisted}
             icon={
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,7 +85,7 @@ export default function DashboardPage() {
             color="warning"
           />
           <StatCard
-            label="Offers"
+            label={isFaculty ? "Offers Released" : "Offers"}
             value={offers}
             icon={
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +100,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
-              Recent Drives
+              {isFaculty ? "Recent Campus Drives" : "Recent Drives"}
             </h2>
             <Link href="/drives">
               <Button variant="ghost" size="sm">
@@ -98,47 +109,50 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentDrives.map((drive) => (
-              <Link key={drive.id} href={`/drives/${drive.id}`}>
-                <Card hover className="h-full">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary font-bold text-sm">
-                        {drive.companyName.slice(0, 2).toUpperCase()}
-                      </span>
+            {recentDrives.map((drive) => {
+              const driveAppCount = applications.filter((a) => a.driveId === drive.id).length;
+              return (
+                <Link key={drive.id} href={`/drives/${drive.id}`}>
+                  <Card hover className="h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-primary font-bold text-sm">
+                          {drive.companyName.slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                      <Badge
+                        variant={drive.status === "open" ? "success" : "default"}
+                        size="sm"
+                        dot
+                      >
+                        {drive.status}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={drive.status === "open" ? "success" : "default"}
-                      size="sm"
-                      dot
-                    >
-                      {drive.status}
-                    </Badge>
-                  </div>
-                  <h3 className="font-semibold text-foreground">
-                    {drive.companyName}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{drive.role}</p>
-                  <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">
-                      {formatCTC(drive.ctcLakh)}
-                    </span>
-                    <span>•</span>
-                    <span>{deadlineCountdown(drive.deadline)}</span>
-                    <span>•</span>
-                    <span>{drive.registeredCount} applied</span>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+                    <h3 className="font-semibold text-foreground">
+                      {drive.companyName}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{drive.role}</p>
+                    <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground">
+                        {formatCTC(drive.ctcLakh)}
+                      </span>
+                      <span>•</span>
+                      <span>{deadlineCountdown(drive.deadline)}</span>
+                      <span>•</span>
+                      <span>{driveAppCount} registered</span>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
-        {/* Recent Applications */}
+        {/* Recent Applications / Activity */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
-              Your Applications
+              {isFaculty ? "Recent Applicant Activity" : "Your Applications"}
             </h2>
             <Link href="/applications">
               <Button variant="ghost" size="sm">
@@ -147,32 +161,45 @@ export default function DashboardPage() {
             </Link>
           </div>
           <Card padding="none">
-            <div className="divide-y divide-border">
-              {mockApplications.slice(0, 4).map((app) => (
-                <Link
-                  key={app.id}
-                  href={`/drives/${app.driveId}`}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-surface-hover transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                      <span className="text-accent text-xs font-bold">
-                        {app.companyName.slice(0, 2).toUpperCase()}
-                      </span>
+            {recentApplications.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No recent application activity.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentApplications.map((app) => (
+                  <Link
+                    key={app.id}
+                    href={`/drives/${app.driveId}`}
+                    className="flex items-center justify-between px-6 py-4 hover:bg-surface-hover transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                        <span className="text-accent text-xs font-bold">
+                          {app.companyName.slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">
+                            {app.companyName}
+                          </p>
+                          {isFaculty && (
+                            <span className="text-xs text-muted-foreground">
+                              ({app.studentName})
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {app.role}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {app.companyName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {app.role}
-                      </p>
-                    </div>
-                  </div>
-                  <StageBadge stage={app.currentStage} />
-                </Link>
-              ))}
-            </div>
+                    <StageBadge stage={app.currentStage} />
+                  </Link>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </div>
@@ -217,7 +244,7 @@ function StatCard({
   );
 }
 
-function StageBadge({ stage }: { stage: string }) {
+function StageBadge({ stage }: { stage: ApplicationStage }) {
   const variant =
     stage === "offered"
       ? "success"
@@ -228,7 +255,7 @@ function StageBadge({ stage }: { stage: string }) {
           : "info";
   return (
     <Badge variant={variant} size="sm" dot={stage !== "rejected"}>
-      {getStageLabel(stage as import("@/lib/mock-data").ApplicationStage)}
+      {getStageLabel(stage)}
     </Badge>
   );
 }
