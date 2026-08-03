@@ -1,6 +1,5 @@
 "use client";
 
-import { type ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { type Drive, formatCTC } from "@/lib/mock-data";

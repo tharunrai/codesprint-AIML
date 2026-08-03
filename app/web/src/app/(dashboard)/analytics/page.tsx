@@ -501,7 +501,13 @@ export default function AnalyticsPage() {
 
 /* ── Custom Tooltips ────────────────────────────────────────── */
 
-function CustomBranchTooltip({ active, payload, label }: any) {
+interface TooltipProps<T> {
+  active?: boolean;
+  payload?: Array<{ payload: T }>;
+  label?: string;
+}
+
+function CustomBranchTooltip({ active, payload, label }: TooltipProps<{ placementRate: number; placedStudents: number; totalStudents: number; avgCtc: number }>) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -522,7 +528,7 @@ function CustomBranchTooltip({ active, payload, label }: any) {
   return null;
 }
 
-function CustomCtcTooltip({ active, payload, label }: any) {
+function CustomCtcTooltip({ active, payload }: TooltipProps<{ company: string; role: string; ctcLakh: number; appliedCount: number; offersCount: number }>) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (

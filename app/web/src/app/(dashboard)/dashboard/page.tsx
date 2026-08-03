@@ -20,9 +20,11 @@ export default function DashboardPage() {
 
   const isFaculty = user?.role === "faculty";
 
-  // Student specific metrics
-  const myApplications = applications.filter(
-    (a) => a.studentId === user?.id || a.email === user?.email
+  // Student specific metrics (matching email or studentId)
+  const myApplications = applications.filter((a) =>
+    user
+      ? a.email.toLowerCase() === user.email.toLowerCase() || a.studentId === user.id
+      : false
   );
 
   const activeDrives = drives.filter((d) => d.status === "open").length;

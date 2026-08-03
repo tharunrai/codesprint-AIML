@@ -34,27 +34,37 @@ interface PlacementContextType {
 const PlacementContext = createContext<PlacementContextType | undefined>(undefined);
 
 export function PlacementProvider({ children }: { children: React.ReactNode }) {
-  const [drives, setDrives] = useState<Drive[]>(mockDrives);
-  const [applications, setApplications] = useState<Application[]>(mockApplications);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
+  const [drives, setDrives] = useState<Drive[]>(() => {
+    if (typeof window === "undefined") return mockDrives;
     try {
-      const storedDrives = localStorage.getItem(STORAGE_KEY_DRIVES);
-      const storedApps = localStorage.getItem(STORAGE_KEY_APPS);
-      const storedNotifs = localStorage.getItem(STORAGE_KEY_NOTIFS);
-
-      if (storedDrives) setDrives(JSON.parse(storedDrives));
-      if (storedApps) setApplications(JSON.parse(storedApps));
-      if (storedNotifs) setNotifications(JSON.parse(storedNotifs));
+      const stored = localStorage.getItem(STORAGE_KEY_DRIVES);
+      return stored ? JSON.parse(stored) : mockDrives;
     } catch {
-      // fallback to mock defaults
-    } finally {
-      setIsLoaded(true);
+      return mockDrives;
     }
-  }, []);
+  });
+
+  const [applications, setApplications] = useState<Application[]>(() => {
+    if (typeof window === "undefined") return mockApplications;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_APPS);
+      return stored ? JSON.parse(stored) : mockApplications;
+    } catch {
+      return mockApplications;
+    }
+  });
+
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    if (typeof window === "undefined") return mockNotifications;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_NOTIFS);
+      return stored ? JSON.parse(stored) : mockNotifications;
+    } catch {
+      return mockNotifications;
+    }
+  });
+
+  const [isLoaded] = useState(true);
 
   // Sync to localStorage
   useEffect(() => {
@@ -172,9 +182,13 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     const drive = drives.find((d) => d.id === driveId);
     if (!drive) return false;
 
-    // Check if already applied
+    // Check if already applied (matching email, studentId, or rollNumber)
     const exists = applications.some(
-      (a) => a.driveId === driveId && (a.studentId === user.id || a.email === user.email)
+      (a) =>
+        a.driveId === driveId &&
+        (a.email.toLowerCase() === user.email.toLowerCase() ||
+          a.studentId === user.id ||
+          (!!a.rollNumber && a.rollNumber === user.rollNumber))
     );
     if (exists) return false;
 
