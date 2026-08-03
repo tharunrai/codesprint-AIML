@@ -5,5 +5,8 @@
   "workspaces": [
     "contracts",
     "app/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=app/web"
+  }
 }
