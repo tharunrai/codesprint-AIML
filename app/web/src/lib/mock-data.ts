@@ -25,6 +25,50 @@ export interface StudentDocument {
   verifiedAt?: string;
 }
 
+export type CalendarEventType =
+  | "interview"
+  | "assessment"
+  | "offer-deadline"
+  | "campus-drive"
+  | "placement-event";
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  type: CalendarEventType;
+  date: string; // YYYY-MM-DD date string
+  time?: string;
+  durationMins?: number;
+  company?: string;
+  driveId?: string;
+  description?: string;
+  location?: string;
+  targetRole: "student" | "faculty" | "both";
+}
+
+export type OfferStatus = "received" | "uploaded" | "verified" | "accepted" | "declined";
+
+export interface OfferLetter {
+  id: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  branch: string;
+  driveId: string;
+  companyName: string;
+  role: string;
+  packageLPA: number;
+  location: string;
+  offerDate: string;
+  joiningDate?: string;
+  status: OfferStatus;
+  fileName?: string;
+  fileSize?: string;
+  uploadedAt?: string;
+  remarks?: string;
+  verifiedAt?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -518,6 +562,251 @@ export const mockDocuments: StudentDocument[] = [
     remarks: "The certificate certificate does not list your grade. Please upload the full grade sheet.",
     verifiedAt: "2026-08-02T14:00:00Z",
   }
+];
+
+// ── Mock Calendar Events ──────────────────────────────────────
+
+export const mockCalendarEvents: CalendarEvent[] = [
+  {
+    id: "evt-001",
+    title: "TCS NQT — Online Assessment",
+    type: "assessment",
+    date: "2026-07-30",
+    time: "10:00 AM",
+    durationMins: 120,
+    company: "Tata Consultancy Services",
+    driveId: "drv-006",
+    description: "National Qualifier Test for TCS Digital hiring.",
+    location: "Online — iON Assessment Portal",
+    targetRole: "both",
+  },
+  {
+    id: "evt-002",
+    title: "Deloitte Aptitude Test",
+    type: "assessment",
+    date: "2026-08-05",
+    time: "09:00 AM",
+    durationMins: 90,
+    company: "Deloitte",
+    driveId: "drv-004",
+    description: "Quantitative, Logical Reasoning, and Verbal Aptitude test.",
+    location: "Computer Center Lab 1 & 2",
+    targetRole: "both",
+  },
+  {
+    id: "evt-003",
+    title: "Deloitte Group Discussion",
+    type: "placement-event",
+    date: "2026-08-08",
+    time: "02:00 PM",
+    durationMins: 60,
+    company: "Deloitte",
+    driveId: "drv-004",
+    description: "Shortlisted candidates from Aptitude test participate in case-study GDs.",
+    location: "Seminar Hall B",
+    targetRole: "both",
+  },
+  {
+    id: "evt-004",
+    title: "Deloitte Offer Acceptance Deadline",
+    type: "offer-deadline",
+    date: "2026-08-10",
+    time: "11:59 PM",
+    company: "Deloitte",
+    driveId: "drv-004",
+    description: "Final date for extended candidates to upload verified offer acceptance.",
+    location: "PlaceMe Portal",
+    targetRole: "student",
+  },
+  {
+    id: "evt-005",
+    title: "TCS Application Deadline",
+    type: "offer-deadline",
+    date: "2026-08-12",
+    time: "11:59 PM",
+    company: "Tata Consultancy Services",
+    driveId: "drv-006",
+    description: "Registration deadline for TCS Systems Engineer role.",
+    location: "PlaceMe Portal",
+    targetRole: "student",
+  },
+  {
+    id: "evt-006",
+    title: "Microsoft Application Deadline",
+    type: "offer-deadline",
+    date: "2026-08-15",
+    time: "11:59 PM",
+    company: "Microsoft",
+    driveId: "drv-002",
+    description: "Last day to apply for Microsoft Software Engineer position.",
+    location: "PlaceMe Portal",
+    targetRole: "student",
+  },
+  {
+    id: "evt-007",
+    title: "Microsoft Online Coding Round",
+    type: "assessment",
+    date: "2026-08-18",
+    time: "02:00 PM",
+    durationMins: 90,
+    company: "Microsoft",
+    driveId: "drv-002",
+    description: "3 algorithmic coding problems on Codility platform.",
+    location: "Online — Codility link sent via email",
+    targetRole: "both",
+  },
+  {
+    id: "evt-008",
+    title: "Google Campus Drive Arrival",
+    type: "campus-drive",
+    date: "2026-08-20",
+    time: "09:30 AM",
+    company: "Google",
+    driveId: "drv-001",
+    description: "Google HR & Technical recruitment team campus visit and briefing.",
+    location: "Auditorium Main Complex",
+    targetRole: "faculty",
+  },
+  {
+    id: "evt-009",
+    title: "Google Online Assessment",
+    type: "assessment",
+    date: "2026-08-22",
+    time: "10:00 AM",
+    durationMins: 120,
+    company: "Google",
+    driveId: "drv-001",
+    description: "HackerRank OA for SDE Intern candidates.",
+    location: "Online",
+    targetRole: "both",
+  },
+  {
+    id: "evt-010",
+    title: "Microsoft Technical Interview",
+    type: "interview",
+    date: "2026-08-25",
+    time: "11:00 AM",
+    durationMins: 45,
+    company: "Microsoft",
+    driveId: "drv-002",
+    description: "1-on-1 Data Structures & Algorithms virtual interview.",
+    location: "Microsoft Teams (Link in portal)",
+    targetRole: "student",
+  },
+  {
+    id: "evt-011",
+    title: "Pre-Placement Talk — Atlassian",
+    type: "placement-event",
+    date: "2026-08-26",
+    time: "04:00 PM",
+    durationMins: 90,
+    company: "Atlassian",
+    driveId: "drv-005",
+    description: "Company overview, engineering culture, and QA session with Atlassian engineers.",
+    location: "Virtual — Zoom Webinar",
+    targetRole: "both",
+  },
+  {
+    id: "evt-012",
+    title: "Razorpay Online Assessment",
+    type: "assessment",
+    date: "2026-08-28",
+    time: "10:00 AM",
+    durationMins: 105,
+    company: "Razorpay",
+    driveId: "drv-003",
+    description: "Backend engineering coding screen and SQL challenge.",
+    location: "Online — DoSelect Platform",
+    targetRole: "both",
+  },
+  {
+    id: "evt-013",
+    title: "Atlassian Application Deadline",
+    type: "offer-deadline",
+    date: "2026-08-30",
+    time: "11:59 PM",
+    company: "Atlassian",
+    driveId: "drv-005",
+    description: "Registration deadline for Frontend Engineer drive.",
+    location: "PlaceMe Portal",
+    targetRole: "student",
+  },
+];
+
+// ── Mock Offer Letters ────────────────────────────────────────
+
+export const mockOfferLetters: OfferLetter[] = [
+  {
+    id: "off-001",
+    studentId: "stu-001",
+    studentName: "Arjun Mehta",
+    rollNumber: "21CS048",
+    branch: "CSE",
+    driveId: "drv-002",
+    companyName: "Microsoft",
+    role: "Software Engineer",
+    packageLPA: 42,
+    location: "Bengaluru, India",
+    offerDate: "2026-07-28T00:00:00Z",
+    joiningDate: "2026-09-01T00:00:00Z",
+    status: "verified",
+    fileName: "microsoft_offer_arjun.pdf",
+    fileSize: "1.4 MB",
+    uploadedAt: "2026-07-29T10:00:00Z",
+    verifiedAt: "2026-07-30T14:00:00Z",
+    remarks: "Official offer letter verified with Microsoft HR coordinator.",
+  },
+  {
+    id: "off-002",
+    studentId: "stu-001",
+    studentName: "Arjun Mehta",
+    rollNumber: "21CS048",
+    branch: "CSE",
+    driveId: "drv-006",
+    companyName: "Tata Consultancy Services",
+    role: "Systems Engineer",
+    packageLPA: 7,
+    location: "Hyderabad, India",
+    offerDate: "2026-07-25T00:00:00Z",
+    joiningDate: "2026-08-15T00:00:00Z",
+    status: "declined",
+    fileName: "tcs_offer_arjun.pdf",
+    fileSize: "680 KB",
+    uploadedAt: "2026-07-26T11:00:00Z",
+  },
+  {
+    id: "off-003",
+    studentId: "stu-21CS012",
+    studentName: "Pooja Hegde",
+    rollNumber: "21CS012",
+    branch: "CSE",
+    driveId: "drv-003",
+    companyName: "Razorpay",
+    role: "Backend Engineer",
+    packageLPA: 28,
+    location: "Bengaluru, India",
+    offerDate: "2026-08-01T00:00:00Z",
+    joiningDate: "2026-09-15T00:00:00Z",
+    status: "received",
+  },
+  {
+    id: "off-004",
+    studentId: "stu-21IS045",
+    studentName: "Rahul Verma",
+    rollNumber: "21IS045",
+    branch: "ISE",
+    driveId: "drv-004",
+    companyName: "Deloitte",
+    role: "Analyst — Tech Consulting",
+    packageLPA: 12,
+    location: "Mumbai, India",
+    offerDate: "2026-07-30T00:00:00Z",
+    joiningDate: "2026-09-01T00:00:00Z",
+    status: "accepted",
+    fileName: "deloitte_offer_rahul.pdf",
+    fileSize: "920 KB",
+    uploadedAt: "2026-08-01T09:00:00Z",
+  },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────

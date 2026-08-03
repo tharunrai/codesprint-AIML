@@ -16,7 +16,7 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { drives, applications, documents } = usePlacement();
+  const { drives, applications, documents, calendarEvents, offerLetters } = usePlacement();
 
   const isFaculty = user?.role === "faculty";
 
@@ -44,6 +44,18 @@ export default function DashboardPage() {
 
   const recentDrives = drives.slice(0, 3);
   const recentApplications = (isFaculty ? applications : myApplications).slice(0, 4);
+
+  // Phase 5: Calendar & Offers Data
+  const upcomingEvents = calendarEvents
+    .filter((e) => (isFaculty ? true : e.targetRole !== "faculty"))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 2);
+
+  const pendingOffersCount = isFaculty 
+    ? offerLetters.filter((o) => o.status === "uploaded").length 
+    : 0;
+
+  const myOffers = offerLetters.filter((o) => user && o.studentId === user.id);
 
   return (
     <>
@@ -152,6 +164,81 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Phase 5 Widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-foreground text-sm">Upcoming Interviews & Events</h3>
+                <Link href="/calendar">
+                  <Button size="sm" variant="ghost">View Calendar →</Button>
+                </Link>
+              </div>
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingEvents.map((evt) => (
+                    <div key={evt.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-hover transition-colors">
+                      <div className="w-10 h-10 rounded bg-background border border-border flex flex-col items-center justify-center shrink-0">
+                        <span className="text-[9px] font-bold text-primary uppercase">{new Date(evt.date).toLocaleDateString("en-US", { month: "short" })}</span>
+                        <span className="text-sm font-black leading-none">{new Date(evt.date).toLocaleDateString("en-US", { day: "numeric" })}</span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-foreground">{evt.title}</h4>
+                        <p className="text-[10px] text-muted-foreground">{evt.company} • {evt.type.replace("-", " ")}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No upcoming events.</p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="flex flex-col justify-between bg-gradient-to-br from-surface to-accent/5">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-foreground text-sm">
+                  {isFaculty ? "Pending Offer Reviews" : "My Latest Offers"}
+                </h3>
+                <Link href={isFaculty ? "/faculty/offers" : "/offers"}>
+                  <Button size="sm" variant="ghost">Manage →</Button>
+                </Link>
+              </div>
+              {isFaculty ? (
+                <div className="py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-warning/10 text-warning flex items-center justify-center">
+                      <span className="text-xl font-bold">{pendingOffersCount}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Action Required</p>
+                      <p className="text-xs text-muted-foreground">Student offers waiting for your verification.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 mt-4">
+                  {myOffers.slice(0, 2).map((off) => (
+                    <div key={off.id} className="flex items-center justify-between p-2 rounded-lg bg-background border border-border">
+                      <div>
+                        <h4 className="text-xs font-bold">{off.companyName}</h4>
+                        <p className="text-[10px] text-muted-foreground">{formatCTC(off.packageLPA)} • {off.role}</p>
+                      </div>
+                      <Badge variant={off.status === "verified" || off.status === "accepted" ? "success" : off.status === "declined" ? "danger" : "warning"} size="sm" dot>
+                        {off.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {myOffers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No offers received yet.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
 
         {/* Recent Drives */}
         <div>
