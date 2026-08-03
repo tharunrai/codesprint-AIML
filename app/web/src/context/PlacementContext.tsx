@@ -10,10 +10,14 @@ import {
   type StudentDocument,
   type DocumentType,
   type DocumentStatus,
+  type CalendarEvent,
+  type OfferLetter,
   mockDrives,
   mockApplications,
   mockNotifications,
   mockDocuments,
+  mockCalendarEvents,
+  mockOfferLetters,
   buildRoundResultsForStage,
 } from "@/lib/mock-data";
 
@@ -21,12 +25,16 @@ const STORAGE_KEY_DRIVES = "placeme_drives";
 const STORAGE_KEY_APPS = "placeme_applications";
 const STORAGE_KEY_NOTIFS = "placeme_notifications";
 const STORAGE_KEY_DOCS = "placeme_documents";
+const STORAGE_KEY_CALENDAR = "placeme_calendar";
+const STORAGE_KEY_OFFERS = "placeme_offers";
 
 interface PlacementContextType {
   drives: Drive[];
   applications: Application[];
   notifications: Notification[];
   documents: StudentDocument[];
+  calendarEvents: CalendarEvent[];
+  offerLetters: OfferLetter[];
   addDrive: (drive: Omit<Drive, "id" | "postedDate" | "registeredCount">) => void;
   updateDriveStatus: (driveId: string, status: "open" | "closed" | "ongoing") => void;
   updateApplicationStage: (appId: string, stage: ApplicationStage) => void;
@@ -38,6 +46,10 @@ interface PlacementContextType {
   uploadDocument: (user: User, type: DocumentType, fileName: string, fileSize?: string) => void;
   removeDocument: (docId: string) => void;
   verifyDocument: (docId: string, status: DocumentStatus, remarks?: string) => void;
+  uploadOffer: (offerId: string, fileName: string, fileSize?: string) => void;
+  updateOffer: (offerId: string, updates: Partial<OfferLetter>) => void;
+  reviewOffer: (offerId: string, status: "received" | "uploaded" | "verified" | "accepted" | "declined", remarks?: string) => void;
+  deleteOffer: (offerId: string) => void;
 }
 
 const PlacementContext = createContext<PlacementContextType | undefined>(undefined);
@@ -83,6 +95,26 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
+  const [calendarEvents] = useState<CalendarEvent[]>(() => {
+    if (typeof window === "undefined") return mockCalendarEvents;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_CALENDAR);
+      return stored ? JSON.parse(stored) : mockCalendarEvents;
+    } catch {
+      return mockCalendarEvents;
+    }
+  });
+
+  const [offerLetters, setOfferLetters] = useState<OfferLetter[]>(() => {
+    if (typeof window === "undefined") return mockOfferLetters;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_OFFERS);
+      return stored ? JSON.parse(stored) : mockOfferLetters;
+    } catch {
+      return mockOfferLetters;
+    }
+  });
+
   const [isLoaded] = useState(true);
 
   // Sync to localStorage
@@ -113,6 +145,20 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(documents));
     } catch {}
   }, [documents, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_CALENDAR, JSON.stringify(calendarEvents));
+    } catch {}
+  }, [calendarEvents, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(offerLetters));
+    } catch {}
+  }, [offerLetters, isLoaded]);
 
   const addDrive = (newDriveData: Omit<Drive, "id" | "postedDate" | "registeredCount">) => {
     const id = `drv-${Date.now().toString().slice(-4)}`;
@@ -257,11 +303,14 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     setApplications(mockApplications);
     setNotifications(mockNotifications);
     setDocuments(mockDocuments);
+    setOfferLetters(mockOfferLetters);
     try {
       localStorage.removeItem(STORAGE_KEY_DRIVES);
       localStorage.removeItem(STORAGE_KEY_APPS);
       localStorage.removeItem(STORAGE_KEY_NOTIFS);
       localStorage.removeItem(STORAGE_KEY_DOCS);
+      localStorage.removeItem(STORAGE_KEY_CALENDAR);
+      localStorage.removeItem(STORAGE_KEY_OFFERS);
     } catch {}
   };
 
@@ -330,6 +379,105 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const uploadOffer = (offerId: string, fileName: string, fileSize: string = "1.2 MB") => {
+    setOfferLetters((prev) =>
+      prev.map((off) =>
+        off.id === offerId
+          ? {
+              ...off,
+              fileName,
+              fileSize,
+              uploadedAt: new Date().toISOString(),
+              status: "uploaded",
+            }
+          : off
+      )
+    );
+
+    const targetOffer = offerLetters.find((o) => o.id === offerId);
+    if (targetOffer) {
+      const notif: Notification = {
+        id: `notif-${Date.now()}`,
+        title: `Offer Letter Uploaded: ${targetOffer.studentName}`,
+        message: `${targetOffer.studentName} uploaded offer letter for ${targetOffer.companyName}.`,
+        type: "info",
+        read: false,
+        timestamp: new Date().toISOString(),
+        link: "/faculty/offers",
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+  };
+
+  const updateOffer = (offerId: string, updates: Partial<OfferLetter>) => {
+    setOfferLetters((prev) =>
+      prev.map((off) => (off.id === offerId ? { ...off, ...updates } : off))
+    );
+
+    if (updates.status === "accepted" || updates.status === "declined") {
+      const targetOffer = offerLetters.find((o) => o.id === offerId);
+      if (targetOffer) {
+        const notif: Notification = {
+          id: `notif-${Date.now()}`,
+          title: `Offer ${updates.status === "accepted" ? "Accepted" : "Declined"}`,
+          message: `Student ${targetOffer.studentName} ${updates.status} the offer from ${targetOffer.companyName}.`,
+          type: updates.status === "accepted" ? "success" : "warning",
+          read: false,
+          timestamp: new Date().toISOString(),
+          link: "/faculty/offers",
+        };
+        setNotifications((prev) => [notif, ...prev]);
+      }
+    }
+  };
+
+  const reviewOffer = (offerId: string, status: "received" | "uploaded" | "verified" | "accepted" | "declined", remarks?: string) => {
+    setOfferLetters((prev) =>
+      prev.map((off) =>
+        off.id === offerId
+          ? {
+              ...off,
+              status,
+              remarks: remarks || undefined,
+              verifiedAt: new Date().toISOString(),
+            }
+          : off
+      )
+    );
+
+    const targetOffer = offerLetters.find((o) => o.id === offerId);
+    if (targetOffer) {
+      const notif: Notification = {
+        id: `notif-${Date.now()}`,
+        title: `Offer Verification ${status === "verified" ? "Approved" : "Rejected"}`,
+        message: `Your offer letter from ${targetOffer.companyName} was ${
+          status === "verified" ? "verified and approved" : "declined"
+        }.${remarks ? ` Remarks: ${remarks}` : ""}`,
+        type: status === "verified" ? "success" : "warning",
+        read: false,
+        timestamp: new Date().toISOString(),
+        link: "/offers",
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+  };
+
+  const deleteOffer = (offerId: string) => {
+    setOfferLetters((prev) =>
+      prev.map((off) =>
+        off.id === offerId
+          ? {
+              ...off,
+              fileName: undefined,
+              fileSize: undefined,
+              uploadedAt: undefined,
+              status: "received",
+            }
+          : off
+      )
+    );
+  };
+
   return (
     <PlacementContext.Provider
       value={{
@@ -337,6 +485,8 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         applications,
         notifications,
         documents,
+        calendarEvents,
+        offerLetters,
         addDrive,
         updateDriveStatus,
         updateApplicationStage,
@@ -348,6 +498,10 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         uploadDocument,
         removeDocument,
         verifyDocument,
+        uploadOffer,
+        updateOffer,
+        reviewOffer,
+        deleteOffer,
       }}
     >
       {children}
