@@ -1,0 +1,319 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────
+// ENUMS
+// ─────────────────────────────
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  IN_PROGRESS
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RoundStatus {
+  PENDING
+  PASSED
+  FAILED
+  SCHEDULED
+}
+
+enum RoundType {
+  OA
+  TECHNICAL
+  HR
+  MANAGERIAL
+  GROUP_DISCUSSION
+  OTHER
+}
+
+enum DocumentType {
+  MARKSHEET_10
+  MARKSHEET_12
+  DEGREE_CERTIFICATE
+  SEMESTER_MARKSHEET
+  RESUME
+  OFFER_LETTER
+  OTHER
+}
+
+enum CredentialStatus {
+  PENDING // uploaded, not yet reviewed
+  VERIFIED // hash anchored on-chain
+  REVOKED
+  REJECTED
+}
+
+enum TxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+// ─────────────────────────────
+// USERS
+// ─────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  supabaseUid String   @unique
+  role        Role
+  fullName    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student       StudentProfile?
+  faculty       FacultyProfile?
+  notifications Notification[]
+
+  @@index([role])
+}
+
+model StudentProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rollNumber     String   @unique
+  branch         String // free text, e.g. "CSE" — no lookup table
+  graduationYear Int
+  cgpa           Float?
+  skills         String[] // tags, no join table
+
+  resumeUrl  String? // latest resume file, direct pointer
+  resumeHash String? // hash of latest resume, if you want tamper-check without full on-chain flow
+
+  walletAddress   String? @unique // custodial wallet, inline — no separate Wallet table
+  walletEncKeyRef String? // pointer into secrets manager
+
+  isVerifiedPlaced Boolean @default(false) // flip this when an OFFERED offer letter Credential goes VERIFIED
+
+  applications   Application[]
+  credentials    Credential[]
+  resumeAnalyses ResumeAnalysis[]
+  prepSessions   PrepSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branch, graduationYear])
+}
+
+model FacultyProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  department    String
+  isWhitelisted Boolean @default(false) // mirrors CredChain.sol whitelistIssuer state
+
+  walletAddress   String? @unique
+  walletEncKeyRef String?
+
+  drivesPosted      Drive[]
+  credentialsIssued Credential[]        @relation("IssuedBy")
+  roundUpdates      RoundStatusUpdate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────
+// DRIVES & APPLICATIONS
+// ─────────────────────────────
+
+model Drive {
+  id               String   @id @default(uuid())
+  companyName      String // free text — no Company table
+  role             String
+  description      String?
+  ctc              Float?
+  eligibleBranches String[] // array instead of join table
+  minCgpa          Float?
+  maxBacklogs      Int?
+  deadline         DateTime
+
+  postedById String
+  postedBy   FacultyProfile @relation(fields: [postedById], references: [id])
+
+  rounds       DriveRound[]
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deadline])
+  @@index([companyName])
+}
+
+model DriveRound {
+  id      String @id @default(uuid())
+  driveId String
+  drive   Drive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
+
+  sequence    Int
+  type        RoundType
+  name        String
+  scheduledAt DateTime?
+
+  statusUpdates RoundStatusUpdate[]
+
+  @@unique([driveId, sequence])
+}
+
+model Application {
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  driveId String
+  drive   Drive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
+
+  status    ApplicationStatus @default(APPLIED)
+  appliedAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  roundUpdates RoundStatusUpdate[]
+  prepSessions PrepSession[]
+
+  @@unique([studentId, driveId])
+  @@index([status])
+}
+
+model RoundStatusUpdate {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  driveRoundId String
+  driveRound   DriveRound @relation(fields: [driveRoundId], references: [id])
+
+  status      RoundStatus    @default(PENDING)
+  updatedById String
+  updatedBy   FacultyProfile @relation(fields: [updatedById], references: [id])
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([applicationId, driveRoundId])
+}
+
+// ─────────────────────────────
+// CREDENTIALS (document + blockchain merged into one table)
+// ─────────────────────────────
+
+model Credential {
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  docType  DocumentType
+  fileUrl  String // Supabase Storage path
+  fileHash String // SHA-256, always computed on upload
+
+  status CredentialStatus @default(PENDING)
+
+  issuedById String?
+  issuedBy   FacultyProfile? @relation("IssuedBy", fields: [issuedById], references: [id])
+
+  eduId          String?   @unique // on-chain credential ID
+  txHash         String?
+  txStatus       TxStatus?
+  chainTimestamp DateTime?
+
+  revokedAt     DateTime?
+  revokedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId, docType])
+  @@index([status])
+}
+
+// ─────────────────────────────
+// AI SUITE
+// ─────────────────────────────
+
+model ResumeAnalysis {
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  resumeUrl     String
+  targetRole    String?
+  atsScore      Int?
+  suggestions   Json
+  missingSkills String[]
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model PrepSession {
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id])
+
+  companyName String? // denormalized, for cache-lookup / display
+  roundType   RoundType?
+
+  companyBrief  Json? // company research assistant output
+  prepChecklist Json? // prep coach output
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+  @@index([companyName]) // lets you cheaply check "have we researched this company before"
+}
+
+model InterviewExperience {
+  id          String    @id @default(uuid())
+  companyName String
+  role        String
+  roundType   RoundType
+  content     String
+  submittedBy String?
+  createdAt   DateTime  @default(now())
+
+  @@index([companyName, role])
+}
+
+// ─────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────
+
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String // free text, e.g. "NEW_DRIVE" — no enum needed for a hackathon
+  payload Json
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
