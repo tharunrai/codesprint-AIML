@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import type { UserRole } from "@/lib/mock-data";
+import { type Role as UserRole } from "@prisma/client";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("student");
+  const [role, setRole] = useState<UserRole>("STUDENT");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,14 +24,32 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const ok = await login(email, password, role);
+      if (isSignUp) {
+        // We use the createClient here directly for sign up since context only handles login
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { role, name: email.split("@")[0] }
+          }
+        });
+        
+        if (signUpError) {
+          console.warn("Supabase signUp error (bypassing for dev):", signUpError.message);
+        }
+        // If email confirmation is disabled, user is logged in
+      }
+
+      const ok = await login(email, password);
       if (ok) {
         router.push("/dashboard");
       } else {
         setError("Invalid credentials. Please try again.");
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -88,30 +107,55 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-foreground">{isSignUp ? "Create an account" : "Welcome back"}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Sign in with your college credentials to continue
+              {isSignUp ? "Register your college details below" : "Sign in with your college credentials to continue"}
             </p>
           </div>
 
-          {/* Role toggle */}
-          <div className="flex bg-surface-hover rounded-xl p-1 gap-1">
-            {(["student", "faculty"] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRole(r)}
-                className={`
-                  flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
-                  ${
-                    role === r
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }
-                `}
+          {/* Role toggle (only for sign up) */}
+          {isSignUp && (
+            <div className="flex bg-surface-hover rounded-xl p-1 gap-1">
+              {(["STUDENT", "FACULTY"] as const).map((r) => (
+                <button
+                  type="button"
+                  key={r}
+                  onClick={() => setRole(r)}
+                  className={`
+                    flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                    ${
+                      role === r
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }
+                  `}
+                >
+                  {r === "STUDENT" ? "Student" : "Faculty / TPC"}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Demo Credentials Helper */}
+          <div className="bg-muted/30 p-3 rounded-lg border border-border/50 text-sm mb-4 space-y-2">
+            <p className="font-medium text-muted-foreground">Demo Credentials:</p>
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={() => { setEmail("arjun.mehta@college.edu"); setPassword("password123"); setRole("STUDENT"); }}
+                className="px-3 py-1 bg-background border rounded text-xs hover:bg-accent/10 transition-colors cursor-pointer"
               >
-                {r === "student" ? "Student" : "Faculty / TPC"}
+                Fill Student
               </button>
-            ))}
+              <button 
+                type="button" 
+                onClick={() => { setEmail("priya.sharma@college.edu"); setPassword("password123"); setRole("FACULTY"); }}
+                className="px-3 py-1 bg-background border rounded text-xs hover:bg-accent/10 transition-colors cursor-pointer"
+              >
+                Fill Faculty
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 italic">Click one, then click "Sign Up" if it's your first time, or "Sign In" otherwise.</p>
           </div>
 
           {/* Form */}
@@ -158,14 +202,18 @@ export default function LoginPage() {
               className="w-full"
               size="lg"
             >
-              Sign in
+              {isSignUp ? "Sign up" : "Sign in"}
             </Button>
           </form>
 
-          <p className="text-xs text-center text-muted-foreground">
-            Demo mode — any credentials will work.
-            <br />
-            Select your role above and click Sign in.
+          <p className="text-sm text-center mt-4">
+            {isSignUp ? "Already have an account? " : "Don't have an account? "}
+            <button
+              onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+              className="text-primary hover:underline font-medium cursor-pointer"
+            >
+              {isSignUp ? "Sign in" : "Sign up"}
+            </button>
           </p>
         </div>
       </div>

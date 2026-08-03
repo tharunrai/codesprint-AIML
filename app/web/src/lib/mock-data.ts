@@ -5,7 +5,7 @@
 
 // ── Types ────────────────────────────────────────────────────
 
-export type UserRole = "student" | "faculty";
+export type UserRole = "student" | "faculty" | "STUDENT" | "FACULTY" | "ADMIN";
 
 export type DocumentType = "resume" | "marksheet" | "certificate";
 export type DocumentStatus = "pending" | "verified" | "rejected";

@@ -31,7 +31,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  const navItems = role === "faculty" ? facultyNavItems : studentNavItems;
+  const navItems = role === "FACULTY" ? facultyNavItems : studentNavItems;
 
   return (
     <aside
@@ -107,14 +107,14 @@ export default function Sidebar() {
       <div className="border-t border-white/10 p-3 shrink-0">
         {!collapsed && user && (
           <div className="mb-3 px-1">
-            <p className="text-sm font-medium truncate">{user.name}</p>
+            <p className="text-sm font-medium truncate">{user.fullName}</p>
             <p className="text-xs text-sidebar-fg/50 truncate">{user.email}</p>
             <Badge
-              variant={role === "faculty" ? "warning" : "info"}
+              variant={role === "FACULTY" ? "warning" : "info"}
               size="sm"
               className="mt-1.5"
             >
-              {role === "faculty" ? "Faculty / TPC" : "Student"}
+              {role === "FACULTY" ? "Faculty / TPC" : "Student"}
             </Badge>
           </div>
         )}

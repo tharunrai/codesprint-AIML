@@ -14,7 +14,7 @@ export default function CalendarPage() {
   const { calendarEvents } = usePlacement();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   // Filter events based on user role
   const visibleEvents = calendarEvents.filter((evt) => {

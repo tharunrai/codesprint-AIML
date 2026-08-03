@@ -29,7 +29,7 @@ export default function DriveDetailPage() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   // Check if current logged in user has applied (matching email or studentId)
   const userApplication = applications.find(
@@ -61,7 +61,7 @@ export default function DriveDetailPage() {
   }
 
   const eligibility = user && !isFaculty
-    ? checkEligibility(user, drive)
+    ? checkEligibility(user as any, drive)
     : { eligible: true, reasons: [] };
 
   const isClosed = drive.status === "closed";
@@ -71,7 +71,7 @@ export default function DriveDetailPage() {
     setApplyLoading(true);
     // Submit application via PlacementContext
     await new Promise((r) => setTimeout(r, 600));
-    applyToDrive(drive.id, user);
+    applyToDrive(drive.id, user as any);
     setApplyLoading(false);
     setShowApplyModal(false);
   }

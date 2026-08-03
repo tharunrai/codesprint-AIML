@@ -15,7 +15,7 @@ export default function ApplicationsPage() {
   const { applications, drives } = usePlacement();
   const [selectedDriveId, setSelectedDriveId] = useState<string>("all");
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   // If student, filter applications belonging to this student (match email or studentId)
   const studentApplications = applications.filter((app) =>

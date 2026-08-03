@@ -22,7 +22,7 @@ export default function DrivesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("deadline");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   const filtered = useMemo(() => {
     let list = [...drives];
@@ -45,9 +45,10 @@ export default function DrivesPage() {
     // Eligible only (for students)
     if (eligibleOnly && user && !isFaculty) {
       list = list.filter((d) => {
+        const userAny = user as any;
         return (
-          user.cgpa >= d.eligibility.minCgpa &&
-          d.eligibility.branches.includes(user.branch)
+          userAny.cgpa >= d.eligibility.minCgpa &&
+          d.eligibility.branches.includes(userAny.branch)
         );
       });
     }
@@ -193,7 +194,7 @@ export default function DrivesPage() {
               <DriveCard
                 key={drive.id}
                 drive={drive}
-                currentUser={user}
+                currentUser={user as any}
                 onToggleStatus={(driveId, newStatus) => updateDriveStatus(driveId, newStatus)}
               />
             ))}

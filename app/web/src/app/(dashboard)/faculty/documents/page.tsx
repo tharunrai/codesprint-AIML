@@ -23,7 +23,7 @@ export default function FacultyDocumentsPage() {
   // Track which documents are in "editing/re-evaluating" mode
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   if (!isFaculty) {
     return (

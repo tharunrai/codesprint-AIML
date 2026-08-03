@@ -5,11 +5,17 @@ async function main() {
   try {
     console.log("Starting deployment of CredentialRegistry...\n");
 
+    const collegeAddress = process.env.COLLEGE_ADDRESS;
+    if (!collegeAddress || collegeAddress === "" || collegeAddress === "0x0000000000000000000000000000000000000000") {
+      throw new Error("COLLEGE_ADDRESS must be set in .env");
+    }
+    console.log(`Using College Address: ${collegeAddress}`);
+
     // Get the contract factory
     const CredentialRegistry = await hre.ethers.getContractFactory("CredentialRegistry");
     
     console.log(" Deploying contract...");
-    const credentialRegistry = await CredentialRegistry.deploy();
+    const credentialRegistry = await CredentialRegistry.deploy(collegeAddress);
 
     // Wait for deployment to finish
     await credentialRegistry.waitForDeployment();
@@ -29,7 +35,7 @@ async function main() {
       try {
         await hre.run("verify:verify", {
           address: contractAddress,
-          constructorArguments: [],
+          constructorArguments: [collegeAddress],
         });
         console.log("Contract verified on Etherscan!");
       } catch (verifyError) {
@@ -47,26 +53,11 @@ async function main() {
       network: hre.network.name,
       deployedAt: new Date().toISOString(),
       deployer: (await hre.ethers.getSigners())[0].address,
+      collegeAddress: collegeAddress
     };
 
     fs.writeFileSync(addressFile, JSON.stringify(deploymentData, null, 2));
     console.log("\nDeployment info saved to:", addressFile);
-
-    // Transfer ownership if ADMIN_ADDRESS is set in .env
-    const adminAddress = process.env.ADMIN_ADDRESS;
-    if (adminAddress && adminAddress !== "" && adminAddress !== "0x0000000000000000000000000000000000000000") {
-      console.log("\n🔐 Transferring ownership to ADMIN_ADDRESS...");
-      console.log("Admin Address:", adminAddress);
-      
-      const newOwner = hre.ethers.getAddress(adminAddress);
-      const tx = await credentialRegistry.transferOwnership(newOwner);
-      await tx.wait();
-      
-      const verifyOwner = await credentialRegistry.owner();
-      console.log("✅ Ownership transferred to:", verifyOwner);
-    } else {
-      console.log("\nℹ️ No ADMIN_ADDRESS set in .env, keeping deployer as owner");
-    }
 
   } catch (error) {
     console.error("Deployment failed!");

@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { drives, applications, documents, calendarEvents, offerLetters } = usePlacement();
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   // Student documents metrics
   const myDocs = documents.filter((d) => user && d.studentId === user.id);
@@ -60,7 +60,7 @@ export default function DashboardPage() {
   return (
     <>
       <Header
-        title={`Welcome back, ${user?.name?.split(" ")[0] || "User"}`}
+        title={`Welcome back, ${user?.fullName?.split(" ")[0] || "User"}`}
         subtitle={
           isFaculty
             ? "TPC Placement Dashboard & Analytics Overview"

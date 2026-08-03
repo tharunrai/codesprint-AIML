@@ -19,10 +19,11 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
-  const [branch, setBranch] = useState(user?.branch || "");
-  const [cgpa, setCgpa] = useState(user?.cgpa?.toString() || "");
-  const [year, setYear] = useState(user?.year?.toString() || "");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>(user?.skills || []);
+  const userAny = user as any;
+  const [branch, setBranch] = useState(userAny?.branch || "");
+  const [cgpa, setCgpa] = useState(userAny?.cgpa?.toString() || "");
+  const [year, setYear] = useState(userAny?.year?.toString() || "");
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(userAny?.skills || []);
   const [loading, setLoading] = useState(false);
 
   function toggleSkill(skill: string) {

@@ -18,7 +18,7 @@ interface DriveCardProps {
 }
 
 export default function DriveCard({ drive, currentUser, onToggleStatus }: DriveCardProps) {
-  const isFaculty = currentUser?.role === "faculty";
+  const isFaculty = currentUser?.role === "FACULTY";
   const eligibility = currentUser && !isFaculty
     ? checkEligibility(currentUser, drive)
     : { eligible: true, reasons: [] };

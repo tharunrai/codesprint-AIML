@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
   const [selectedFunnelDrive, setSelectedFunnelDrive] = useState<string>("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const isFaculty = user?.role === "faculty";
+  const isFaculty = user?.role === "FACULTY";
 
   // Real-time derived analytics from PlacementContext
   const summary = useMemo(

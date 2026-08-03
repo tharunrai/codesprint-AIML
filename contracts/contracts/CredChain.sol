@@ -6,8 +6,7 @@ pragma solidity ^0.8.20;
  * @dev Academic Credential Verification System on Blockchain
  * 
  * Roles:
- * - Owner (Admin): Whitelists institutions, has full control
- * - Whitelisted Issuers: Institutions that can issue credentials
+ * - College: The single authorized entity that can issue and revoke credentials
  * - Students: Recipients of credentials
  * - Verifiers: Public can verify credentials
  */
@@ -31,10 +30,7 @@ contract CredentialRegistry {
     }
 
     // ============ State Variables ============
-    address public owner;
-
-    // Whitelisted issuers (institutions)
-    mapping(address => bool) public whitelistedIssuers;
+    address public collegeAddress;
 
     // Credentials storage: eduId => Credential
     mapping(string => Credential) public credentials;
@@ -49,14 +45,6 @@ contract CredentialRegistry {
     string[] public allEduIds;
 
     // ============ Events ============
-    event IssuerWhitelisted(
-        address indexed issuer,
-        string institutionName,
-        uint256 timestamp
-    );
-
-    event IssuerRemovedFromWhitelist(address indexed issuer, uint256 timestamp);
-
     event CredentialIssued(
         string indexed eduId,
         address indexed issuer,
@@ -67,68 +55,16 @@ contract CredentialRegistry {
 
     event CredentialRevoked(string indexed eduId, address indexed revokedBy, uint256 timestamp);
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner, uint256 timestamp);
-
     // ============ Modifiers ============
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
-        _;
-    }
-
-    modifier onlyWhitelistedIssuer() {
-        require(whitelistedIssuers[msg.sender], "Only whitelisted issuers can issue credentials");
-        _;
-    }
-
-    modifier onlyIssuerOrOwner(string memory _eduId) {
-        require(
-            msg.sender == credentials[_eduId].issuer || msg.sender == owner,
-            "Only issuer or owner can revoke"
-        );
+    modifier onlyCollege() {
+        require(msg.sender == collegeAddress, "Only the college can call this function");
         _;
     }
 
     // ============ Constructor ============
-    constructor() {
-        owner = msg.sender;
-    }
-
-    // ============ Admin Functions (Owner Only) ============
-
-    /**
-     * @dev Transfer ownership to a new address
-     * @param newOwner Address of the new owner
-     */
-    function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid new owner address");
-        require(newOwner != owner, "Already the owner");
-        
-        address oldOwner = owner;
-        owner = newOwner;
-        
-        emit OwnershipTransferred(oldOwner, newOwner, block.timestamp);
-    }
-
-    /**
-     * @dev Whitelist or remove an issuer (institution)
-     * @param issuer Address of the institution
-     * @param status True to whitelist, false to remove
-     * @param institutionName Name of the institution
-     */
-    function whitelistIssuer(
-        address issuer,
-        bool status,
-        string memory institutionName
-    ) external onlyOwner {
-        require(issuer != address(0), "Invalid issuer address");
-
-        whitelistedIssuers[issuer] = status;
-
-        if (status) {
-            emit IssuerWhitelisted(issuer, institutionName, block.timestamp);
-        } else {
-            emit IssuerRemovedFromWhitelist(issuer, block.timestamp);
-        }
+    constructor(address _collegeAddress) {
+        require(_collegeAddress != address(0), "Invalid college address");
+        collegeAddress = _collegeAddress;
     }
 
     // ============ Issuer Functions ============
@@ -150,7 +86,7 @@ contract CredentialRegistry {
         string memory credentialType,
         string memory courseOrProgram,
         bytes32 documentHash
-    ) external onlyWhitelistedIssuer returns (string memory) {
+    ) external onlyCollege returns (string memory) {
         require(studentWallet != address(0), "Invalid student wallet");
         require(bytes(studentName).length > 0, "Student name required");
         require(bytes(institutionName).length > 0, "Institution name required");
@@ -200,7 +136,7 @@ contract CredentialRegistry {
      */
     function revokeCredential(string memory eduId)
         external
-        onlyIssuerOrOwner(eduId)
+        onlyCollege
     {
         require(eduIdExists[eduId], "Credential does not exist");
         require(!credentials[eduId].revoked, "Credential already revoked");
@@ -294,15 +230,6 @@ contract CredentialRegistry {
      */
     function getAllCredentials() external view returns (string[] memory) {
         return allEduIds;
-    }
-
-    /**
-     * @dev Check if an address is a whitelisted issuer
-     * @param issuer Address to check
-     * @return Whether the address is whitelisted
-     */
-    function isWhitelistedIssuer(address issuer) external view returns (bool) {
-        return whitelistedIssuers[issuer];
     }
 
     // ============ Internal Functions ============

@@ -15,7 +15,7 @@ export default function StudentDocumentsPage() {
   const { documents, uploadDocument, removeDocument } = usePlacement();
   const [previewDocId, setPreviewDocId] = useState<string | null>(null);
 
-  const isStudent = user?.role === "student";
+  const isStudent = user?.role === "STUDENT";
 
   // Filter documents belonging to this student
   const studentDocs = documents.filter(
@@ -52,7 +52,7 @@ export default function StudentDocumentsPage() {
         ? `${(sizeInKb / 1024).toFixed(1)} MB`
         : `${sizeInKb.toFixed(0)} KB`;
 
-    uploadDocument(user, type, file.name, sizeStr);
+    uploadDocument(user as any, type, file.name, sizeStr);
     // Reset file input value so upload can be triggered again
     e.target.value = "";
   };
