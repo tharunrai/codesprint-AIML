@@ -175,7 +175,7 @@ export default function CreateDriveModal({ isOpen, onClose, onSubmit }: CreateDr
               <label className="block text-xs font-semibold text-foreground">Role Type</label>
               <select
                 value={roleType}
-                onChange={(e) => setRoleType(e.target.value as any)}
+                onChange={(e) => setRoleType(e.target.value as "Full-time" | "Internship" | "PPO")}
                 className="w-full h-10 px-3 rounded-lg text-sm bg-surface border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
               >
                 <option value="Full-time">Full-time</option>
@@ -302,7 +302,11 @@ export default function CreateDriveModal({ isOpen, onClose, onSubmit }: CreateDr
               />
               <select
                 value={newRoundType}
-                onChange={(e) => setNewRoundType(e.target.value as any)}
+                onChange={(e) =>
+                  setNewRoundType(
+                    e.target.value as "OA" | "Technical" | "HR" | "GD" | "Coding" | "Final"
+                  )
+                }
                 className="h-9 px-2 text-xs rounded-lg bg-surface border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
               >
                 <option value="OA">OA</option>

@@ -6,13 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlacement } from "@/context/PlacementContext";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import {
-  getStageLabel,
-  type ApplicationStage,
-  type RoundResult,
-} from "@/lib/mock-data";
+import StageBadge from "@/components/ui/StageBadge";
+import { type RoundResult } from "@/lib/mock-data";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
@@ -21,9 +17,11 @@ export default function ApplicationsPage() {
 
   const isFaculty = user?.role === "faculty";
 
-  // If student, filter applications belonging to this student
+  // If student, filter applications belonging to this student (match email or studentId)
   const studentApplications = applications.filter((app) =>
-    user ? app.studentId === user.id || app.email === user.email : true
+    user
+      ? app.email.toLowerCase() === user.email.toLowerCase() || app.studentId === user.id
+      : true
   );
 
   const displayApplications = isFaculty
@@ -171,22 +169,6 @@ export default function ApplicationsPage() {
 }
 
 /* ── Sub-components ────────────────────────────────────────── */
-
-function StageBadge({ stage }: { stage: ApplicationStage }) {
-  const variant =
-    stage === "offered"
-      ? "success"
-      : stage === "rejected"
-        ? "danger"
-        : stage === "applied"
-          ? "default"
-          : "info";
-  return (
-    <Badge variant={variant} dot={stage !== "rejected" && stage !== "offered"}>
-      {getStageLabel(stage)}
-    </Badge>
-  );
-}
 
 function RoundPill({ round }: { round: RoundResult }) {
   const styles = {

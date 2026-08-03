@@ -31,9 +31,11 @@ export default function DriveDetailPage() {
 
   const isFaculty = user?.role === "faculty";
 
-  // Check if current logged in user has applied
+  // Check if current logged in user has applied (matching email or studentId)
   const userApplication = applications.find(
-    (a) => a.driveId === driveId && (a.studentId === user?.id || a.email === user?.email)
+    (a) =>
+      a.driveId === driveId &&
+      (user ? a.email.toLowerCase() === user.email.toLowerCase() || a.studentId === user.id : false)
   );
   const applied = !!userApplication;
 
@@ -65,7 +67,7 @@ export default function DriveDetailPage() {
   const isClosed = drive.status === "closed";
 
   async function handleApply() {
-    if (!user) return;
+    if (!drive || !user) return;
     setApplyLoading(true);
     // Submit application via PlacementContext
     await new Promise((r) => setTimeout(r, 600));
@@ -75,6 +77,7 @@ export default function DriveDetailPage() {
   }
 
   function handleToggleDriveStatus() {
+    if (!drive) return;
     updateDriveStatus(drive.id, isClosed ? "open" : "closed");
   }
 

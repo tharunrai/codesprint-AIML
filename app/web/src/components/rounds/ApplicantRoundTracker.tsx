@@ -6,11 +6,10 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import StageBadge from "@/components/ui/StageBadge";
 import {
-  type Application,
   type ApplicationStage,
   type Drive,
-  getStageLabel,
 } from "@/lib/mock-data";
 
 interface ApplicantRoundTrackerProps {
@@ -352,7 +351,7 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
 
                       {/* Current Stage */}
                       <td className="py-3.5 px-4">
-                        <StageStatusBadge stage={app.currentStage} />
+                        <StageBadge stage={app.currentStage} />
                       </td>
 
                       {/* Applied Date */}
@@ -417,24 +416,5 @@ function StatPill({
         {label.slice(0, 3)}
       </Badge>
     </Card>
-  );
-}
-
-function StageStatusBadge({ stage }: { stage: ApplicationStage }) {
-  const variant =
-    stage === "offered"
-      ? "success"
-      : stage === "rejected"
-        ? "danger"
-        : stage === "applied"
-          ? "default"
-          : stage === "shortlisted"
-            ? "info"
-            : "warning";
-
-  return (
-    <Badge variant={variant} dot={stage !== "rejected" && stage !== "offered"}>
-      {getStageLabel(stage)}
-    </Badge>
   );
 }

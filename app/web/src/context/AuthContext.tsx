@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from "react";
@@ -25,23 +24,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_STORAGE_KEY = "placeme_auth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Hydrate auth state from localStorage on mount
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as User;
-        setUser(parsed);
-      }
+      return stored ? (JSON.parse(stored) as User) : null;
     } catch {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
+      return null;
     }
-  }, []);
+  });
+  const isLoading = false;
 
   const login = useCallback(
     async (_email: string, _password: string, role: UserRole): Promise<boolean> => {
