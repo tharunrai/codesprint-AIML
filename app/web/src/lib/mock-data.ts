@@ -7,6 +7,24 @@
 
 export type UserRole = "student" | "faculty";
 
+export type DocumentType = "resume" | "marksheet" | "certificate";
+export type DocumentStatus = "pending" | "verified" | "rejected";
+
+export interface StudentDocument {
+  id: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  branch: string;
+  type: DocumentType;
+  fileName: string;
+  fileSize?: string;
+  status: DocumentStatus;
+  uploadedAt: string;
+  remarks?: string;
+  verifiedAt?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -443,6 +461,63 @@ export const mockNotifications: Notification[] = [
     timestamp: "2026-08-02T16:30:00Z",
     link: "/applications",
   },
+];
+
+// ── Mock Documents ───────────────────────────────────────────
+
+export const mockDocuments: StudentDocument[] = [
+  {
+    id: "doc-001",
+    studentId: "stu-001",
+    studentName: "Arjun Mehta",
+    rollNumber: "21CS048",
+    branch: "CSE",
+    type: "resume",
+    fileName: "arjun_mehta_resume.pdf",
+    fileSize: "245 KB",
+    status: "verified",
+    uploadedAt: "2026-08-01T10:00:00Z",
+    verifiedAt: "2026-08-02T11:00:00Z",
+    remarks: "All credentials verified matching college database.",
+  },
+  {
+    id: "doc-002",
+    studentId: "stu-001",
+    studentName: "Arjun Mehta",
+    rollNumber: "21CS048",
+    branch: "CSE",
+    type: "marksheet",
+    fileName: "sem6_marksheet.pdf",
+    fileSize: "1.2 MB",
+    status: "pending",
+    uploadedAt: "2026-08-03T15:30:00Z",
+  },
+  {
+    id: "doc-003",
+    studentId: "stu-21CS012",
+    studentName: "Pooja Hegde",
+    rollNumber: "21CS012",
+    branch: "CSE",
+    type: "resume",
+    fileName: "pooja_hegde_resume_v2.pdf",
+    fileSize: "189 KB",
+    status: "pending",
+    uploadedAt: "2026-08-03T16:00:00Z",
+  },
+  {
+    id: "doc-004",
+    studentId: "stu-21IS045",
+    studentName: "Rahul Verma",
+    rollNumber: "21IS045",
+    branch: "ISE",
+    type: "certificate",
+    fileName: "cloud_computing_nptel.pdf",
+    fileSize: "512 KB",
+    status: "rejected",
+    uploadedAt: "2026-08-02T09:00:00Z",
+    remarks: "The certificate certificate does not list your grade. Please upload the full grade sheet.",
+    verifiedAt: "2026-08-02T14:00:00Z",
+  }
 ];
 
 // ── Helpers ──────────────────────────────────────────────────

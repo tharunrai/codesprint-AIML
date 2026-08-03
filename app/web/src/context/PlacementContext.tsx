@@ -7,20 +7,26 @@ import {
   type Notification,
   type ApplicationStage,
   type User,
+  type StudentDocument,
+  type DocumentType,
+  type DocumentStatus,
   mockDrives,
   mockApplications,
   mockNotifications,
+  mockDocuments,
   buildRoundResultsForStage,
 } from "@/lib/mock-data";
 
 const STORAGE_KEY_DRIVES = "placeme_drives";
 const STORAGE_KEY_APPS = "placeme_applications";
 const STORAGE_KEY_NOTIFS = "placeme_notifications";
+const STORAGE_KEY_DOCS = "placeme_documents";
 
 interface PlacementContextType {
   drives: Drive[];
   applications: Application[];
   notifications: Notification[];
+  documents: StudentDocument[];
   addDrive: (drive: Omit<Drive, "id" | "postedDate" | "registeredCount">) => void;
   updateDriveStatus: (driveId: string, status: "open" | "closed" | "ongoing") => void;
   updateApplicationStage: (appId: string, stage: ApplicationStage) => void;
@@ -29,6 +35,9 @@ interface PlacementContextType {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   resetToDefaults: () => void;
+  uploadDocument: (user: User, type: DocumentType, fileName: string, fileSize?: string) => void;
+  removeDocument: (docId: string) => void;
+  verifyDocument: (docId: string, status: DocumentStatus, remarks?: string) => void;
 }
 
 const PlacementContext = createContext<PlacementContextType | undefined>(undefined);
@@ -64,6 +73,16 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
+  const [documents, setDocuments] = useState<StudentDocument[]>(() => {
+    if (typeof window === "undefined") return mockDocuments;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_DOCS);
+      return stored ? JSON.parse(stored) : mockDocuments;
+    } catch {
+      return mockDocuments;
+    }
+  });
+
   const [isLoaded] = useState(true);
 
   // Sync to localStorage
@@ -87,6 +106,13 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifications));
     } catch {}
   }, [notifications, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(documents));
+    } catch {}
+  }, [documents, isLoaded]);
 
   const addDrive = (newDriveData: Omit<Drive, "id" | "postedDate" | "registeredCount">) => {
     const id = `drv-${Date.now().toString().slice(-4)}`;
@@ -230,11 +256,78 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     setDrives(mockDrives);
     setApplications(mockApplications);
     setNotifications(mockNotifications);
+    setDocuments(mockDocuments);
     try {
       localStorage.removeItem(STORAGE_KEY_DRIVES);
       localStorage.removeItem(STORAGE_KEY_APPS);
       localStorage.removeItem(STORAGE_KEY_NOTIFS);
+      localStorage.removeItem(STORAGE_KEY_DOCS);
     } catch {}
+  };
+
+  const uploadDocument = (user: User, type: DocumentType, fileName: string, fileSize?: string) => {
+    setDocuments((prev) => {
+      const filtered = prev.filter((d) => !(d.studentId === user.id && d.type === type));
+      const newDoc: StudentDocument = {
+        id: `doc-${Date.now()}`,
+        studentId: user.id,
+        studentName: user.name,
+        rollNumber: user.rollNumber,
+        branch: user.branch,
+        type,
+        fileName,
+        fileSize: fileSize || "Unknown size",
+        status: "pending",
+        uploadedAt: new Date().toISOString(),
+      };
+      return [...filtered, newDoc];
+    });
+
+    const notif: Notification = {
+      id: `notif-${Date.now()}`,
+      title: `New Document Upload: ${user.name}`,
+      message: `${user.name} uploaded their ${type}.`,
+      type: "info",
+      read: false,
+      timestamp: new Date().toISOString(),
+      link: "/faculty/documents",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+  };
+
+  const removeDocument = (docId: string) => {
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  };
+
+  const verifyDocument = (docId: string, status: DocumentStatus, remarks?: string) => {
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === docId
+          ? {
+              ...d,
+              status,
+              remarks: remarks || undefined,
+              verifiedAt: new Date().toISOString(),
+            }
+          : d
+      )
+    );
+
+    const targetDoc = documents.find((d) => d.id === docId);
+    if (targetDoc) {
+      const notif: Notification = {
+        id: `notif-${Date.now()}`,
+        title: `Document ${status === "verified" ? "Verified" : "Rejected"}`,
+        message: `Your ${targetDoc.type} was ${status === "verified" ? "verified" : "rejected"}.${
+          remarks ? ` Remarks: ${remarks}` : ""
+        }`,
+        type: status === "verified" ? "success" : "warning",
+        read: false,
+        timestamp: new Date().toISOString(),
+        link: "/documents",
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
   };
 
   return (
@@ -243,6 +336,7 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         drives,
         applications,
         notifications,
+        documents,
         addDrive,
         updateDriveStatus,
         updateApplicationStage,
@@ -251,6 +345,9 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         markNotificationRead,
         markAllNotificationsRead,
         resetToDefaults,
+        uploadDocument,
+        removeDocument,
+        verifyDocument,
       }}
     >
       {children}

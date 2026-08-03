@@ -16,9 +16,15 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { drives, applications } = usePlacement();
+  const { drives, applications, documents } = usePlacement();
 
   const isFaculty = user?.role === "faculty";
+
+  // Student documents metrics
+  const myDocs = documents.filter((d) => user && d.studentId === user.id);
+  const docVerifiedCount = myDocs.filter((d) => d.status === "verified").length;
+  const docPendingCount = myDocs.filter((d) => d.status === "pending").length;
+  const docRejectedCount = myDocs.filter((d) => d.status === "rejected").length;
 
   // Student specific metrics (matching email or studentId)
   const myApplications = applications.filter((a) =>
@@ -114,6 +120,36 @@ export default function DashboardPage() {
                 View Full Analytics →
               </Button>
             </Link>
+          </div>
+        )}
+
+        {/* Student Document Attestation Widget */}
+        {!isFaculty && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/5 to-transparent border border-border">
+            <div className="space-y-1">
+              <h3 className="font-bold text-foreground text-sm">
+                Document Attestation Status
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Upload and track your credentials (Resume, Marksheet, Certificates) to remain placement-compliant.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge variant="success" dot={docVerifiedCount > 0}>
+                {docVerifiedCount} Verified
+              </Badge>
+              <Badge variant="warning" dot={docPendingCount > 0}>
+                {docPendingCount} Pending
+              </Badge>
+              <Badge variant="danger" dot={docRejectedCount > 0}>
+                {docRejectedCount} Rejected
+              </Badge>
+              <Link href="/documents" className="ml-2">
+                <Button size="sm" variant="secondary">
+                  Manage Documents →
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
 

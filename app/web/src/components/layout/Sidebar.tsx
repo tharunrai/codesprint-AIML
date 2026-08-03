@@ -19,7 +19,7 @@ const facultyNavItems = [
   { label: "Manage Drives", href: "/drives", icon: DrivesIcon },
   { label: "Applications", href: "/applications", icon: ApplicationsIcon },
   { label: "Analytics", href: "/analytics", icon: AnalyticsIcon },
-  { label: "Documents", href: "/documents", icon: DocumentsIcon },
+  { label: "Documents", href: "/faculty/documents", icon: DocumentsIcon },
 ];
 
 export default function Sidebar() {
