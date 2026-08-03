@@ -1,25 +1,24 @@
-import { getStudentCredentials } from "@/app/actions/credentials";
+import { getStudentProfileAndCredentials } from "@/app/actions/credentials";
 import CredentialsClient from "./CredentialsClient";
-import { redirect } from "next/navigation";
 
 export default async function CredentialsPage() {
-  let credentials;
+  let studentData = { student: null as any, credentials: [] as any[] };
+
   try {
-    credentials = await getStudentCredentials();
+    studentData = await getStudentProfileAndCredentials();
   } catch (error: any) {
-    if (error.message === "Unauthorized") {
-      redirect("/login");
-    }
-    // If it's another error (like db connection), we might want to show an error state
-    throw error;
+    console.warn("Could not load credentials server-side:", error?.message);
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">My Credentials</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Academic Credential Vault</h2>
       </div>
-      <CredentialsClient initialCredentials={credentials} />
+      <CredentialsClient 
+        initialCredentials={studentData.credentials} 
+        studentInfo={studentData.student}
+      />
     </div>
   );
 }
