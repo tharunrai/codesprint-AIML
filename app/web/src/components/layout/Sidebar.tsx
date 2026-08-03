@@ -12,7 +12,7 @@ const studentNavItems = [
   { label: "My Applications", href: "/applications", icon: ApplicationsIcon },
   { label: "Calendar", href: "/calendar", icon: CalendarIcon },
   { label: "My Offers", href: "/offers", icon: OffersIcon },
-  { label: "Documents", href: "/documents", icon: DocumentsIcon },
+  { label: "Credentials", href: "/credentials", icon: DocumentsIcon },
   { label: "Profile", href: "/profile", icon: ProfileIcon },
 ];
 

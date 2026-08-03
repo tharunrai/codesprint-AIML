@@ -141,3 +141,124 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
 }
+
+/* -- PathQuest Theme Adaptations ----------------------------- */
+:root {
+  --bg-base: var(--background);
+  --bg-panel: var(--surface);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  
+  /* Flatten the skeuomorphism to match the app */
+  --skeuo-shadow-out: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --skeuo-shadow-out-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --skeuo-shadow-inset: none;
+  --skeuo-shadow-inset-sm: none;
+  
+  --border-bevel: 1px solid var(--border);
+  --border-bevel-subtle: 1px solid var(--border-hover);
+  --divider: var(--border);
+  --text-emboss: none;
+  --gloss-overlay: none;
+  
+  --scrollbar-thumb: var(--muted);
+  --scrollbar-hover: var(--muted-foreground);
+}
+
+.leaflet-container {
+  background: var(--background) !important;
+  font-family: inherit;
+  z-index: 10;
+}
+
+.custom-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skeuo-card {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: var(--surface-hover);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: var(--border-hover);
+}
+.btn-compare {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.btn-compare:hover {
+  background: var(--accent-hover);
+}
+
+.custom-select, .custom-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--foreground);
+  padding: 8px 12px;
+  width: 100%;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.badge-blue { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
+
+.skeuo-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.led-green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.led-blue { background: var(--primary); box-shadow: 0 0 6px var(--primary); }
+.led-off { background: var(--muted); }
+
+.path-node {
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
