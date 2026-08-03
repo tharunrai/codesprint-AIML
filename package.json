@@ -1,0 +1,9 @@
+{
+  "name": "codesprint-aiml",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "app/*"
+  ]
+}
