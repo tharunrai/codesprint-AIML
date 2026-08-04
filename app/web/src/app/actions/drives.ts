@@ -48,3 +48,45 @@ export async function getDrives() {
     registeredCount: d.applications.length,
   }));
 }
+
+export async function getDriveById(id: string) {
+  const d = await prisma.drive.findUnique({
+    where: { id },
+    include: {
+      rounds: {
+        orderBy: { sequence: "asc" },
+      },
+      postedBy: {
+        include: { user: true },
+      },
+      applications: true,
+    },
+  });
+
+  if (!d) return null;
+
+  return {
+    id: d.id,
+    companyName: d.companyName,
+    role: d.role,
+    description: d.description || "",
+    ctcLakh: d.ctc || 0,
+    roleType: "Full-time",
+    eligibility: {
+      minCgpa: d.minCgpa || 0,
+      branches: d.eligibleBranches,
+      maxBacklogs: d.maxBacklogs || 0,
+    },
+    deadline: d.deadline.toISOString(),
+    postedDate: d.createdAt.toISOString(),
+    status: d.deadline > new Date() ? "open" : "closed",
+    rounds: d.rounds.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      order: r.sequence,
+      scheduledDate: r.scheduledAt?.toISOString(),
+    })),
+    registeredCount: d.applications.length,
+  };
+}

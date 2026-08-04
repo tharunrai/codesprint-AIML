@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePlacement } from "@/context/PlacementContext";
+import { getDriveById } from "@/app/actions/drives";
+import { getApplications } from "@/app/actions/applications";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -20,10 +22,12 @@ export default function DriveDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { drives, applications, applyToDrive, updateDriveStatus } = usePlacement();
+  const { applyToDrive, updateDriveStatus } = usePlacement();
 
   const driveId = params.id as string;
-  const drive = drives.find((d) => d.id === driveId);
+  const [drive, setDrive] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<"overview" | "applicants">("overview");
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -31,15 +35,44 @@ export default function DriveDetailPage() {
 
   const isFaculty = user?.role === "FACULTY";
 
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [driveData, appsData] = await Promise.all([
+          getDriveById(driveId),
+          getApplications()
+        ]);
+        setDrive(driveData);
+        setApplications(appsData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [driveId]);
+
   // Check if current logged in user has applied (matching email or studentId)
   const userApplication = applications.find(
     (a) =>
       a.driveId === driveId &&
-      (user ? a.email.toLowerCase() === user.email.toLowerCase() || a.studentId === user.id : false)
+      (user ? a.email?.toLowerCase() === user.email?.toLowerCase() || a.studentId === user.id : false)
   );
   const applied = !!userApplication;
 
-  if (!drive) {
+  if (loading) {
+    return (
+      <>
+        <Header title="Loading Drive..." />
+        <div className="flex items-center justify-center p-20">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </>
+    );
+  }
+
+  if (!drive && !loading) {
     return (
       <>
         <Header title="Drive Not Found" />
