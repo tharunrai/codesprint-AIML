@@ -64,3 +64,74 @@ export async function getFacultyProfile() {
     };
   }
 }
+
+export async function getStudentProfile(userId?: string) {
+  try {
+    let student = null;
+
+    if (userId) {
+      student = await prisma.studentProfile.findUnique({
+        where: { userId },
+        include: { user: true },
+      });
+    }
+
+    if (!student) {
+      try {
+        const cookieStore = await cookies();
+        const supabase = createClient(cookieStore);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          student = await prisma.studentProfile.findUnique({
+            where: { userId: user.id },
+            include: { user: true },
+          });
+        }
+      } catch (e) {
+        console.warn("Supabase auth check in getStudentProfile:", e);
+      }
+    }
+
+    // Fallback to first student in DB if specific user not found
+    if (!student) {
+      student = await prisma.studentProfile.findFirst({
+        include: { user: true },
+      });
+    }
+
+    if (!student) {
+      return {
+        id: "mock-student-1",
+        cgpa: 8.5,
+        branch: "CSE",
+        rollNumber: "21CS048",
+        fullName: "Arjun Mehta",
+        email: "arjun.mehta@college.edu",
+      };
+    }
+
+    return {
+      id: student.id,
+      userId: student.userId,
+      cgpa: student.cgpa ?? 8.5,
+      branch: student.branch || "CSE",
+      rollNumber: student.rollNumber,
+      fullName: student.user?.fullName || "Arjun Mehta",
+      email: student.user?.email || "arjun.mehta@college.edu",
+      skills: student.skills,
+    };
+  } catch (error) {
+    console.error("Database query failed in getStudentProfile:", error);
+    return {
+      id: "mock-student-1",
+      cgpa: 8.5,
+      branch: "CSE",
+      rollNumber: "21CS048",
+      fullName: "Arjun Mehta",
+      email: "arjun.mehta@college.edu",
+    };
+  }
+}

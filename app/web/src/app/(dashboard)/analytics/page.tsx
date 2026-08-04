@@ -3,6 +3,9 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlacement } from "@/context/PlacementContext";
+import { getDrives } from "@/app/actions/drives";
+import { getApplications } from "@/app/actions/applications";
+import { useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -14,7 +17,7 @@ import {
   computeConversionFunnel,
   exportToCSV,
 } from "@/lib/analytics-utils";
-import { formatCTC } from "@/lib/mock-data";
+import { formatCTC } from "@/lib/utils";;
 import {
   ResponsiveContainer,
   BarChart,
@@ -30,10 +33,26 @@ import {
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
-  const { drives, applications } = usePlacement();
-
+  const [drives, setDrives] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedFunnelDrive, setSelectedFunnelDrive] = useState<string>("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [_drives, _apps] = await Promise.all([getDrives(), getApplications()]);
+        setDrives(_drives);
+        setApplications(_apps);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const isFaculty = user?.role === "FACULTY";
 

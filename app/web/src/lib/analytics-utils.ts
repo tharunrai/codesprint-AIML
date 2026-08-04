@@ -1,4 +1,6 @@
-import { type Drive, type Application } from "@/lib/mock-data";
+import { type Drive, type Application } from "@/lib/types";
+import { getStageLabel } from "@/lib/utils";
+import { type ApplicationStage } from "@/lib/types";
 
 export interface BranchStat {
   branch: string;

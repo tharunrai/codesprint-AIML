@@ -9,7 +9,7 @@ import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/ui/StageBadge";
-import { type RoundResult } from "@/lib/mock-data";
+import { type RoundResult } from "@/lib/types";;
 import { confirmApplication } from "@/app/actions/pipeline";
 
 export default function ApplicationsPage() {
@@ -143,7 +143,7 @@ export default function ApplicationsPage() {
 
                 {/* Round pipeline visualization */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-2">
-                  {app.roundResults.map((round, idx) => (
+                  {app.roundResults.map((round: any, idx: number) => (
                     <div key={idx} className="flex items-center">
                       <RoundPill round={round} />
                       {idx < app.roundResults.length - 1 && (

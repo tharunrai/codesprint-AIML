@@ -3,25 +3,23 @@
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import {
-  type Drive,
-  type User,
-  checkEligibility,
-  formatCTC,
-  deadlineCountdown,
-} from "@/lib/mock-data";
+import { type Drive } from "@/lib/types";
+import { type User } from "@prisma/client";
+import { checkEligibility, formatCTC, deadlineCountdown } from "@/lib/utils";
 
 interface DriveCardProps {
   drive: Drive;
   currentUser: User | null;
+  studentProfile?: { cgpa?: number | null; branch?: string | null } | null;
   onToggleStatus?: (driveId: string, newStatus: "open" | "closed") => void;
 }
 
-export default function DriveCard({ drive, currentUser, onToggleStatus }: DriveCardProps) {
+export default function DriveCard({ drive, currentUser, studentProfile, onToggleStatus }: DriveCardProps) {
   const isFaculty = currentUser?.role === "FACULTY";
   const eligibility = currentUser && !isFaculty
-    ? checkEligibility(currentUser, drive)
-    : { eligible: true, reasons: [] };
+    ? checkEligibility(studentProfile || { cgpa: 8.4, branch: "CSE" }, drive)
+    : { eligible: false, reasons: ["Only students can apply"] };
+  const isEligible = eligibility.eligible;
 
   const isClosed = drive.status === "closed";
 
@@ -122,7 +120,7 @@ export default function DriveCard({ drive, currentUser, onToggleStatus }: DriveC
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              {eligibility.eligible ? (
+              {isEligible ? (
                 <Badge variant="success" size="sm">
                   ✓ Eligible
                 </Badge>

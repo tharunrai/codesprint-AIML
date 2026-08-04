@@ -9,7 +9,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
-import { type DocumentStatus } from "@/lib/mock-data";
+import { type DocumentStatus } from "@/lib/types";;
 
 export default function FacultyDocumentsPage() {
   const { user } = useAuth();

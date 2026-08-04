@@ -90,3 +90,54 @@ export async function getDriveById(id: string) {
     registeredCount: d.applications.length,
   };
 }
+
+export async function updateDriveStatus(driveId: string, status: "open" | "closed" | "ongoing") {
+  const d = await prisma.drive.findUnique({ where: { id: driveId } });
+  if (!d) throw new Error("Drive not found");
+  
+  // Actually mapped to a realistic update in Prisma
+  // We don't have a status field in the schema, it's inferred from deadline
+  if (status === "closed") {
+    await prisma.drive.update({
+      where: { id: driveId },
+      data: { deadline: new Date(Date.now() - 1000) } // Set deadline to past
+    });
+  } else {
+    await prisma.drive.update({
+      where: { id: driveId },
+      data: { deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } // +1 week
+    });
+  }
+}
+
+export async function createDrive(data: any, facultyUserId: string) {
+  const faculty = await prisma.facultyProfile.findUnique({
+    where: { userId: facultyUserId }
+  });
+  
+  if (!faculty) throw new Error("Faculty profile not found");
+
+  const newDrive = await prisma.drive.create({
+    data: {
+      companyName: data.companyName,
+      role: data.role,
+      description: data.description,
+      ctc: data.ctcLakh,
+      minCgpa: data.eligibility.minCgpa,
+      maxBacklogs: data.eligibility.maxBacklogs,
+      eligibleBranches: data.eligibility.branches,
+      deadline: new Date(data.deadline),
+      postedById: faculty.id,
+      rounds: {
+        create: data.rounds.map((r: any, idx: number) => ({
+          name: r.name,
+          sequence: idx + 1,
+          type: "TECHNICAL", // simplified
+          scheduledAt: r.scheduledDate ? new Date(r.scheduledDate) : null
+        }))
+      }
+    }
+  });
+
+  return newDrive.id;
+}

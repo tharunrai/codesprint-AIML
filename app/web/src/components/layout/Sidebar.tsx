@@ -4,16 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Badge from "@/components/ui/Badge";
+import { PlaceMeLogoIcon } from "@/components/ui/Logo";
 import { useState } from "react";
 
 const studentNavItems = [
+  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
   { label: "Jobs & Internships", href: "/drives", icon: DrivesIcon },
   { label: "My Applications", href: "/applications", icon: ApplicationsIcon },
   { label: "Credentials", href: "/credentials", icon: DocumentsIcon },
   { label: "My Offers", href: "/offers", icon: OffersIcon },
   { label: "AI Assistant", href: "/ai-assistant", icon: AIIcon },
   { label: "Calendar", href: "/calendar", icon: CalendarIcon },
-  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
   { label: "Profile", href: "/profile", icon: ProfileIcon },
 ];
 
@@ -48,9 +49,7 @@ export default function Sidebar() {
     >
       {/* Brand */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">P</span>
-        </div>
+        <PlaceMeLogoIcon className="w-8 h-8 shrink-0" />
         {!collapsed && (
           <span className="font-bold text-lg tracking-tight whitespace-nowrap">
             PlaceMe

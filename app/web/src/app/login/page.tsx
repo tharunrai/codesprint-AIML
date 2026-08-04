@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { PlaceMeLogoIcon } from "@/components/ui/Logo";
 import { type Role as UserRole } from "@prisma/client";
 
 export default function LoginPage() {
@@ -66,8 +67,9 @@ export default function LoginPage() {
           <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white/10 rounded-2xl blur-2xl -translate-x-1/2 -translate-y-1/2 rotate-45 animate-pulse-subtle stagger-4" />
         </div>
         <div className="relative z-10 flex flex-col justify-center px-16 text-white animate-slide-in-right">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-8">
-            <span className="text-2xl font-bold">P</span>
+          <div className="flex items-center gap-3.5 mb-8">
+            <PlaceMeLogoIcon className="w-14 h-14" />
+            <span className="text-3xl font-black tracking-tight text-white">PlaceMe</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight mb-4">
             Your placement
@@ -100,9 +102,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8 animate-fade-in-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">P</span>
-            </div>
+            <PlaceMeLogoIcon className="w-10 h-10" />
             <span className="text-xl font-bold text-foreground">PlaceMe</span>
           </div>
 

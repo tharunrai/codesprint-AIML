@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 import { getApplications } from "@/app/actions/applications";
-import { getOfferLetters } from "@/app/actions/offers";
+import { getAllOffers } from "@/app/actions/offers";
 import { getAllCredentials } from "@/app/actions/credentials";
 import { getCalendarEvents } from "@/app/actions/calendar";
 import { getDrives } from "@/app/actions/drives";
@@ -63,7 +63,7 @@ export default function FacultyProfilePage() {
       try {
         const [apps, offs, docs, evts, drvs, fProfile] = await Promise.all([
           getApplications(),
-          getOfferLetters(),
+          getAllOffers(),
           getAllCredentials(),
           getCalendarEvents(),
           getDrives(),

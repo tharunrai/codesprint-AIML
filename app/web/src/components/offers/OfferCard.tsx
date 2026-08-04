@@ -1,6 +1,7 @@
 "use client";
 
-import { type OfferLetter, formatCTC } from "@/lib/mock-data";
+import { type OfferLetter } from "@/lib/types";
+import { formatCTC } from "@/lib/utils";;
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";

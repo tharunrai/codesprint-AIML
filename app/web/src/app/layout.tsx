@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "PlaceMe — Smart Placement & Career Tracking Portal",
   description:
     "Centralized placement portal for students and faculty. Browse drives, track applications, and manage your placement journey end-to-end.",
+  icons: {
+    icon: "/applogo.png",
+    apple: "/applogo.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,5 +1,8 @@
+"use client";
+
 import Badge from "@/components/ui/Badge";
-import { getStageLabel, type ApplicationStage } from "@/lib/mock-data";
+import { type ApplicationStage } from "@/lib/types";
+import { getStageLabel } from "@/lib/utils";
 
 interface StageBadgeProps {
   stage: ApplicationStage;
@@ -16,6 +19,7 @@ const stageVariantMap: Record<ApplicationStage, "default" | "success" | "warning
   "round-3": "info",
   offered: "success",
   rejected: "danger",
+  withdrawn: "default",
 };
 
 export default function StageBadge({ stage, size = "md", className = "" }: StageBadgeProps) {

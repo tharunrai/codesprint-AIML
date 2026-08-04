@@ -1,7 +1,7 @@
 "use client";
 
 import Badge from "@/components/ui/Badge";
-import { type OfferStatus } from "@/lib/mock-data";
+import { type OfferStatus } from "@/lib/types";;
 
 interface OfferStatusBadgeProps {
   status: OfferStatus;

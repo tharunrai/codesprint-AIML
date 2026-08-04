@@ -1,22 +1,73 @@
 "use server";
 
-// For now, returning static offers since Offer Letter is not in the Prisma schema.
-// A full implementation would add an Offer model and fetch it.
-export async function getOfferLetters() {
-  return [
-    {
-      id: "off-001",
-      studentId: "stu-001",
-      studentName: "Arjun Mehta",
-      rollNumber: "21CS048",
-      branch: "CSE",
-      driveId: "drv-002",
-      companyName: "Microsoft",
-      role: "Software Engineer",
-      packageLPA: 42,
-      location: "Bengaluru, India",
-      offerDate: "2026-07-28T00:00:00Z",
-      status: "verified",
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
+import { OfferLetter } from "@/lib/types";
+
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+export async function getStudentOffers(userId: string): Promise<OfferLetter[]> {
+  const student = await prisma.studentProfile.findUnique({
+    where: { userId },
+  });
+  if (!student) return [];
+
+  const applications = await prisma.application.findMany({
+    where: {
+      studentId: student.id,
+      status: "OFFERED"
+    },
+    include: {
+      drive: true
     }
-  ];
+  });
+
+  return applications.map(app => ({
+    id: app.id,
+    studentId: userId,
+    companyName: app.drive.companyName,
+    role: app.drive.role,
+    packageLPA: app.drive.ctc || 0,
+    location: "Remote/Office", 
+    offerDate: app.updatedAt.toISOString(),
+    status: "verified", 
+  }));
+}
+
+export async function getAllOffers(): Promise<OfferLetter[]> {
+  const applications = await prisma.application.findMany({
+    where: {
+      status: "OFFERED"
+    },
+    include: {
+      drive: true,
+      student: {
+        include: {
+          user: true
+        }
+      }
+    }
+  });
+
+  return applications.map(app => ({
+    id: app.id,
+    studentId: app.student.userId,
+    studentName: app.student.user.fullName,
+    rollNumber: app.student.rollNumber,
+    branch: app.student.branch,
+    companyName: app.drive.companyName,
+    role: app.drive.role,
+    packageLPA: app.drive.ctc || 0,
+    location: "Remote/Office",
+    offerDate: app.updatedAt.toISOString(),
+    status: "verified",
+  }));
+}
+
+export async function updateOfferStatus(applicationId: string, newStatus: string) {
+  return { success: true };
 }

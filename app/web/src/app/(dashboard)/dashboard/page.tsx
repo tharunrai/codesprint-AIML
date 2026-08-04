@@ -11,7 +11,8 @@ import { getApplications } from "@/app/actions/applications";
 import { getStudentCredentials, getAllCredentials } from "@/app/actions/credentials";
 import { getCalendarEvents } from "@/app/actions/calendar";
 import { useState, useEffect, useMemo } from "react";
-import { getStageLabel, type ApplicationStage } from "@/lib/mock-data";
+import { type ApplicationStage } from "@/lib/types";
+import { getStageLabel } from "@/lib/utils";;
 
 // ─── Urgency helpers ────────────────────────────────────────────────────────
 

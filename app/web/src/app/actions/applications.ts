@@ -65,3 +65,43 @@ export async function getApplications() {
     };
   });
 }
+
+export async function applyToDrive(driveId: string, studentUserId: string) {
+  // Find the student profile for this user
+  const student = await prisma.studentProfile.findUnique({
+    where: { userId: studentUserId }
+  });
+  if (!student) throw new Error("Student profile not found");
+
+  // Check if application already exists
+  const existing = await prisma.application.findUnique({
+    where: { studentId_driveId: { studentId: student.id, driveId } }
+  });
+  if (existing) throw new Error("Already applied");
+
+  const app = await prisma.application.create({
+    data: {
+      driveId,
+      studentId: student.id,
+      status: "APPLIED"
+    }
+  });
+  return app.id;
+}
+
+export async function updateApplicationStage(appId: string, stage: string) {
+  const app = await prisma.application.findUnique({ where: { id: appId } });
+  if (!app) throw new Error("App not found");
+  
+  let newStatus = "IN_PROGRESS";
+  if (stage === "applied") newStatus = "APPLIED";
+  else if (stage === "shortlisted") newStatus = "SHORTLISTED";
+  else if (stage === "offered") newStatus = "OFFERED";
+  else if (stage === "rejected") newStatus = "REJECTED";
+  else if (stage === "withdrawn") newStatus = "WITHDRAWN";
+
+  await prisma.application.update({
+    where: { id: appId },
+    data: { status: newStatus as any }
+  });
+}

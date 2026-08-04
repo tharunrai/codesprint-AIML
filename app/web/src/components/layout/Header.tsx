@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePlacement } from "@/context/PlacementContext";
-import { type Notification } from "@/lib/mock-data";
+import { type Notification } from "@/lib/types";;
 import Badge from "@/components/ui/Badge";
 
 interface HeaderProps {

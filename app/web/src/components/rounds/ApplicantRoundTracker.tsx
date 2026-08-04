@@ -7,13 +7,14 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import StageBadge from "@/components/ui/StageBadge";
-import {
-  type ApplicationStage,
-  type Drive,
-} from "@/lib/mock-data";
+import { type ApplicationStage, type Drive, type Application } from "@/lib/types";
+
+import { updateApplicationStage } from "@/app/actions/applications";
 
 interface ApplicantRoundTrackerProps {
   drive: Drive;
+  applications: Application[];
+  setApplications?: React.Dispatch<React.SetStateAction<Application[]>>;
 }
 
 const STAGES: { key: ApplicationStage | "all"; label: string }[] = [
@@ -27,8 +28,7 @@ const STAGES: { key: ApplicationStage | "all"; label: string }[] = [
   { key: "rejected", label: "Rejected" },
 ];
 
-export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerProps) {
-  const { applications, updateApplicationStage, bulkUpdateStage } = usePlacement();
+export default function ApplicantRoundTracker({ drive, applications, setApplications }: ApplicantRoundTrackerProps) {
 
   const [activeStage, setActiveStage] = useState<ApplicationStage | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,15 +89,38 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
     );
   };
 
-  const handleBulkStageChange = (targetStage: ApplicationStage) => {
+  const handleBulkUpdate = async (stage: ApplicationStage) => {
     if (selectedAppIds.length === 0) return;
-    bulkUpdateStage(selectedAppIds, targetStage);
-    setSelectedAppIds([]);
-    setShowRejectConfirm(false);
+    try {
+      // In a real app we'd have a bulk update server action
+      for (const id of selectedAppIds) {
+        await updateApplicationStage(id, stage);
+      }
+      if (setApplications) {
+        setApplications(prev => prev.map(a => 
+          selectedAppIds.includes(a.id) ? { ...a, currentStage: stage, lastUpdated: new Date().toISOString() } : a
+        ));
+      }
+      setSelectedAppIds([]);
+      if (stage === "rejected") setShowRejectConfirm(false);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update status");
+    }
   };
 
-  const handleIndividualStageChange = (appId: string, newStage: ApplicationStage) => {
-    updateApplicationStage(appId, newStage);
+  const handleUpdateStatus = async (appId: string, stage: ApplicationStage) => {
+    try {
+      await updateApplicationStage(appId, stage);
+      if (setApplications) {
+        setApplications(prev => prev.map(a => 
+          a.id === appId ? { ...a, currentStage: stage, lastUpdated: new Date().toISOString() } : a
+        ));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update status");
+    }
   };
 
   const isAllSelected =
@@ -206,7 +229,7 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
                 <Button
                   size="sm"
                   variant="danger"
-                  onClick={() => handleBulkStageChange("rejected")}
+                  onClick={() => handleBulkUpdate("rejected")}
                 >
                   Confirm Reject
                 </Button>
@@ -223,28 +246,28 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => handleBulkStageChange("shortlisted")}
+                  onClick={() => handleBulkUpdate("shortlisted")}
                 >
                   Shortlist
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => handleBulkStageChange("round-1")}
+                  onClick={() => handleBulkUpdate("round-1")}
                 >
                   Move to R1
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => handleBulkStageChange("round-2")}
+                  onClick={() => handleBulkUpdate("round-2")}
                 >
                   Move to R2
                 </Button>
                 <Button
                   size="sm"
                   variant="primary"
-                  onClick={() => handleBulkStageChange("offered")}
+                  onClick={() => handleBulkUpdate("offered")}
                 >
                   Extend Offer
                 </Button>
@@ -327,7 +350,7 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
                             <span className="text-xs font-bold text-primary">
                               {app.studentName
                                 .split(" ")
-                                .map((w) => w[0])
+                                .map((w: string) => w[0])
                                 .join("")
                                 .slice(0, 2)}
                             </span>
@@ -367,7 +390,7 @@ export default function ApplicantRoundTracker({ drive }: ApplicantRoundTrackerPr
                         <select
                           value={app.currentStage}
                           onChange={(e) =>
-                            handleIndividualStageChange(
+                            handleUpdateStatus(
                               app.id,
                               e.target.value as ApplicationStage
                             )

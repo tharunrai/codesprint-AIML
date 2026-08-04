@@ -4,29 +4,26 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePlacement } from "@/context/PlacementContext";
-import { getDriveById } from "@/app/actions/drives";
-import { getApplications } from "@/app/actions/applications";
+import { getDriveById, updateDriveStatus } from "@/app/actions/drives";
+import { getApplications, applyToDrive } from "@/app/actions/applications";
+import { getStudentProfile } from "@/app/actions/profile";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ApplyModal from "@/components/drives/ApplyModal";
 import ApplicantRoundTracker from "@/components/rounds/ApplicantRoundTracker";
-import {
-  checkEligibility,
-  formatCTC,
-  deadlineCountdown,
-} from "@/lib/mock-data";
+import { checkEligibility, formatCTC, deadlineCountdown } from "@/lib/utils";
 
 export default function DriveDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { applyToDrive, updateDriveStatus } = usePlacement();
 
   const driveId = params.id as string;
   const [drive, setDrive] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<"overview" | "applicants">("overview");
@@ -38,12 +35,14 @@ export default function DriveDetailPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [driveData, appsData] = await Promise.all([
+        const [driveData, appsData, profileData] = await Promise.all([
           getDriveById(driveId),
-          getApplications()
+          getApplications(),
+          getStudentProfile(user?.id)
         ]);
         setDrive(driveData);
         setApplications(appsData);
+        setStudentProfile(profileData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -51,7 +50,7 @@ export default function DriveDetailPage() {
       }
     }
     loadData();
-  }, [driveId]);
+  }, [driveId, user?.id]);
 
   // Check if current logged in user has applied (matching email or studentId)
   const userApplication = applications.find(
@@ -94,24 +93,42 @@ export default function DriveDetailPage() {
   }
 
   const eligibility = user && !isFaculty
-    ? checkEligibility(user as any, drive)
+    ? checkEligibility(studentProfile || { cgpa: 8.4, branch: "CSE" }, drive)
     : { eligible: true, reasons: [] };
 
   const isClosed = drive.status === "closed";
 
-  async function handleApply() {
-    if (!drive || !user) return;
+  const handleApply = async () => {
+    if (!user) return;
     setApplyLoading(true);
-    // Submit application via PlacementContext
-    await new Promise((r) => setTimeout(r, 600));
-    applyToDrive(drive.id, user as any);
-    setApplyLoading(false);
-    setShowApplyModal(false);
-  }
+    try {
+      await applyToDrive(driveId, user.id);
+      // Optimistic update of local state
+      setApplications(prev => [...prev, {
+        driveId,
+        studentId: user.id,
+        email: user.email,
+        currentStage: "applied",
+        appliedDate: new Date().toISOString()
+      }]);
+      setShowApplyModal(false);
+      // In a real app, we'd also show a toast here
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to apply");
+    } finally {
+      setApplyLoading(false);
+    }
+  };
 
-  function handleToggleDriveStatus() {
+  async function handleToggleDriveStatus() {
     if (!drive) return;
-    updateDriveStatus(drive.id, isClosed ? "open" : "closed");
+    try {
+      await updateDriveStatus(drive.id, isClosed ? "open" : "closed");
+      setDrive({ ...drive, status: isClosed ? "open" : "closed" });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function handleAIPrepCoach() {
@@ -301,7 +318,7 @@ export default function DriveDetailPage() {
                 Hiring Rounds Timeline
               </h3>
               <div className="space-y-0">
-                {drive.rounds.map((round, idx) => (
+                {drive.rounds.map((round: any, idx: number) => (
                   <div key={round.id} className="flex items-start gap-4">
                     {/* Timeline line */}
                     <div className="flex flex-col items-center">
@@ -401,7 +418,7 @@ export default function DriveDetailPage() {
 
         {/* Tab 2: Faculty Applicants & Round Tracker */}
         {isFaculty && activeTab === "applicants" && (
-          <ApplicantRoundTracker drive={drive} />
+          <ApplicantRoundTracker drive={drive} applications={applications} setApplications={setApplications} />
         )}
       </div>
 

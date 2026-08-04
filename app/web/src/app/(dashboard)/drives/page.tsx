@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getDrives } from "@/app/actions/drives";
+import { getDrives, createDrive } from "@/app/actions/drives";
+import { getStudentProfile } from "@/app/actions/profile";
 import Header from "@/components/layout/Header";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -15,6 +16,7 @@ type StatusFilter = "all" | "open" | "ongoing" | "closed";
 export default function DrivesPage() {
   const { user } = useAuth();
   const [drives, setDrives] = useState<any[]>([]);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -22,12 +24,15 @@ export default function DrivesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("deadline");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  
   useEffect(() => {
     async function load() {
       try {
-        const data = await getDrives();
-        setDrives(data);
+        const [drivesData, profileData] = await Promise.all([
+          getDrives(),
+          getStudentProfile(user?.id)
+        ]);
+        setDrives(drivesData);
+        setStudentProfile(profileData);
       } catch (e) {
         console.error(e);
       } finally {
@@ -35,7 +40,7 @@ export default function DrivesPage() {
       }
     }
     load();
-  }, []);
+  }, [user?.id]);
 
   const isFaculty = user?.role === "FACULTY";
 
@@ -59,11 +64,11 @@ export default function DrivesPage() {
 
     // Eligible only (for students)
     if (eligibleOnly && user && !isFaculty) {
+      const student = studentProfile || { cgpa: 8.4, branch: "CSE" };
       list = list.filter((d) => {
-        const userAny = user as any;
         return (
-          userAny.cgpa >= d.eligibility.minCgpa &&
-          d.eligibility.branches.includes(userAny.branch)
+          student.cgpa >= (d.eligibility?.minCgpa || 0) &&
+          (d.eligibility?.branches || []).includes(student.branch)
         );
       });
     }
@@ -216,6 +221,7 @@ export default function DrivesPage() {
                 key={drive.id}
                 drive={drive}
                 currentUser={user as any}
+                studentProfile={studentProfile}
                 onToggleStatus={(driveId, newStatus) => { /* TODO: server action */ }}
               />
             ))}
@@ -244,7 +250,19 @@ export default function DrivesPage() {
         <CreateDriveModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={(newDrive) => { /* TODO: server action for create drive */ }}
+          onSubmit={async (newDriveData) => {
+            if (!user) return;
+            try {
+              await createDrive(newDriveData, user.id);
+              setIsCreateModalOpen(false);
+              // Refresh drives
+              const data = await getDrives();
+              setDrives(data);
+            } catch (err) {
+              console.error("Failed to create drive", err);
+              alert("Failed to create drive");
+            }
+          }}
         />
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { type CalendarEvent, type CalendarEventType } from "@/lib/mock-data";
+import { type CalendarEvent, type CalendarEventType } from "@/lib/types";;
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 

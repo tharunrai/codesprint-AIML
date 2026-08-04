@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { type Drive, type RoundInfo } from "@/lib/mock-data";
+import { type Drive, type RoundInfo } from "@/lib/types";;
 
 interface CreateDriveModalProps {
   isOpen: boolean;

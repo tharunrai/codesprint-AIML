@@ -3,7 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { getUser } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });

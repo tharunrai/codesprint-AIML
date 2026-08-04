@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type CalendarEvent } from "@/lib/mock-data";
+import { type CalendarEvent } from "@/lib/types";;
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 

@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 
 import { getApplications } from "@/app/actions/applications";
-import { getOfferLetters } from "@/app/actions/offers";
+import { getStudentOffers } from "@/app/actions/offers";
 import { getStudentCredentials } from "@/app/actions/credentials";
 import { getCalendarEvents } from "@/app/actions/calendar";
 import { getDrives } from "@/app/actions/drives";
@@ -66,7 +66,7 @@ export default function ProfilePage() {
       try {
         const [apps, offs, docs, evts, drvs] = await Promise.all([
           getApplications(),
-          getOfferLetters(),
+          user ? getStudentOffers(user.id) : Promise.resolve([]),
           getStudentCredentials(),
           getCalendarEvents(),
           getDrives(),
