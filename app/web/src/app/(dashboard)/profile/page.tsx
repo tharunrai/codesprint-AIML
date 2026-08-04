@@ -1,247 +1,433 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/layout/Header";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import ProfileSection from "@/components/profile/ProfileSection";
+import SocialLinksCard from "@/components/profile/SocialLinksCard";
+import EditProfileModal, { ProfileExtras } from "@/components/profile/EditProfileModal";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { usePlacement } from "@/context/PlacementContext";
 import Link from "next/link";
-import { User, Mail, BookOpen, GraduationCap, Star, FileText, Award, Shield, Sparkles, TrendingUp, Building2 } from "lucide-react";
+import {
+  FileText,
+  Award,
+  Shield,
+  Star,
+  Calendar,
+  Brain,
+  Briefcase,
+  GraduationCap,
+  BookOpen,
+  Code2,
+  FileCheck,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ChevronRight,
+} from "lucide-react";
+
+import { getApplications } from "@/app/actions/applications";
+import { getOfferLetters } from "@/app/actions/offers";
+import { getStudentCredentials } from "@/app/actions/credentials";
+import { getCalendarEvents } from "@/app/actions/calendar";
+import { getDrives } from "@/app/actions/drives";
 
 export default function ProfilePage() {
-  const { user, role, logout } = useAuth();
-  const { applications, documents, offerLetters } = usePlacement();
+  const { user, logout } = useAuth();
 
-  const isFaculty = user?.role === "FACULTY";
+  const [loading, setLoading] = useState(true);
+  const [extras, setExtras] = useState<ProfileExtras>({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Student-specific data
+  // Data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [applications, setApplications] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [offers, setOffers] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [documents, setDocuments] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [drives, setDrives] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load local storage extras
+    try {
+      const stored = localStorage.getItem("placeme_profile_extras");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (stored) setExtras(JSON.parse(stored));
+    } catch {}
+
+    async function loadData() {
+      try {
+        const [apps, offs, docs, evts, drvs] = await Promise.all([
+          getApplications(),
+          getOfferLetters(),
+          getStudentCredentials(),
+          getCalendarEvents(),
+          getDrives(),
+        ]);
+        setApplications(apps);
+        setOffers(offs);
+        setDocuments(docs);
+        setCalendarEvents(evts);
+        setDrives(drvs);
+      } catch (e) {
+        console.error("Failed to load profile data:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleSaveExtras = (newExtras: ProfileExtras) => {
+    setExtras(newExtras);
+    try {
+      localStorage.setItem("placeme_profile_extras", JSON.stringify(newExtras));
+    } catch {}
+  };
+
+  if (!user) return null;
+
+  // Student specific filtering matching Dashboard
   const myApplications = applications.filter(
-    (a) => user && (a.email.toLowerCase() === user.email.toLowerCase() || a.studentId === user.id)
+    (a) => a.email.toLowerCase() === user.email.toLowerCase() || a.studentId === user.id
   );
-  const myDocs = documents.filter((d) => user && d.studentId === user.id);
-  const myOffers = offerLetters.filter((o) => user && o.studentId === user.id);
-  const verifiedDocs = myDocs.filter((d) => d.status === "verified").length;
-  const offersReceived = myOffers.length;
-  const offersAccepted = myOffers.filter((o) => o.status === "accepted").length;
+  const myOffers = offers.filter((o) => o.studentId === user.id);
+  const myDocs = documents;
 
-  // Faculty data
-  const totalStudentsApplied = new Set(applications.map((a) => a.studentId)).size;
-  const totalOffers = applications.filter((a) => a.currentStage === "offered").length;
+  // Stats (exact match with Dashboard calculations)
+  const appliedCount = myApplications.length;
+  const shortlistedCount = myApplications.filter(
+    (a) => a.currentStage !== "applied" && a.currentStage !== "rejected"
+  ).length;
+  const offersReceived = myOffers.length;
+  const verifiedDocs = myDocs.filter((d) => d.status.toLowerCase() === "verified").length;
+  const pendingDocs = myDocs.filter((d) => d.status.toLowerCase() === "pending").length;
+
+  const upcomingEvents = calendarEvents
+    .filter((e) => e.targetRole !== "faculty")
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 3);
+
+  // Deriving student information
+  const studentApp = myApplications.length > 0 ? myApplications[0] : null;
+  const cgpa = studentApp ? studentApp.cgpa : 8.5;
+  const rollNumber = studentApp ? studentApp.rollNumber : "21CS048";
+  const branch = studentApp ? studentApp.branch : "Computer Science & Engineering";
+
+  const backlogs = extras.backlogs !== undefined ? extras.backlogs : 0;
+  const isEligible = cgpa >= 6.0 && backlogs === 0;
+
+  // Skills parsing
+  const defaultSkills = ["React", "TypeScript", "Node.js", "Python", "PostgreSQL", "Tailwind CSS"];
+  const skillsList = extras.skills
+    ? extras.skills.split(",").map((s) => s.trim()).filter(Boolean)
+    : defaultSkills;
 
   return (
     <>
       <Header
-        title={isFaculty ? "Faculty Profile" : "Student Profile"}
-        subtitle="Your account information and placement summary"
+        title="Student Profile"
+        subtitle="Manage your personal details, academic records, and career tracking summary"
       />
 
-      <div className="p-6 space-y-6 max-w-4xl">
-        {/* Profile Card */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-primary/20 via-accent/15 to-primary/10" />
-          <div className="relative pt-12 flex flex-col sm:flex-row items-center sm:items-end gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-primary/20 border-4 border-background -mt-4">
-              {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-            <div className="text-center sm:text-left flex-1">
-              <h2 className="text-2xl font-black text-foreground">
-                {user?.fullName || "User"}
-              </h2>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1.5">
-                <Badge variant={isFaculty ? "warning" : "info"} size="sm">
-                  {isFaculty ? "Faculty / TPC Coordinator" : "Student"}
-                </Badge>
-                <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5" /> {user?.email}
-                </span>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm" onClick={logout}>
-              Sign Out
-            </Button>
-          </div>
-        </Card>
+      <div className="p-6 space-y-6 max-w-5xl">
+        <ProfileHeader
+          name={user.fullName}
+          email={user.email}
+          roleBadgeText="Student"
+          isFaculty={false}
+          onEdit={() => setIsEditModalOpen(true)}
+          onLogout={logout}
+        />
 
-        {/* Stats Grid */}
-        {!isFaculty ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard
-              icon={<FileText className="w-5 h-5 text-primary" />}
-              label="Applications"
-              value={myApplications.length}
-              color="primary"
-            />
-            <StatCard
-              icon={<Award className="w-5 h-5 text-emerald-500" />}
-              label="Offers"
-              value={offersReceived}
-              color="success"
-            />
-            <StatCard
-              icon={<Shield className="w-5 h-5 text-amber-500" />}
-              label="Verified Docs"
-              value={verifiedDocs}
-              color="warning"
-            />
-            <StatCard
-              icon={<Star className="w-5 h-5 text-accent" />}
-              label="Accepted"
-              value={offersAccepted}
-              color="accent"
-            />
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard
-              icon={<User className="w-5 h-5 text-primary" />}
-              label="Students Applied"
-              value={totalStudentsApplied}
-              color="primary"
-            />
-            <StatCard
-              icon={<Building2 className="w-5 h-5 text-accent" />}
-              label="Total Drives"
-              value={applications.length > 0 ? new Set(applications.map((a) => a.driveId)).size : 0}
-              color="accent"
-            />
-            <StatCard
-              icon={<TrendingUp className="w-5 h-5 text-emerald-500" />}
-              label="Offers Extended"
-              value={totalOffers}
-              color="success"
-            />
-            <StatCard
-              icon={<Shield className="w-5 h-5 text-amber-500" />}
-              label="Docs Pending"
-              value={documents.filter((d) => d.status === "pending").length}
-              color="warning"
-            />
-          </div>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Column - Details */}
+            <div className="md:col-span-1 space-y-6">
+              {/* 1. Personal Information */}
+              <ProfileSection title="Personal Information" icon={<BookOpen className="w-4 h-4 text-primary" />}>
+                <div className="space-y-3">
+                  <InfoRow label="Roll No / USN" value={rollNumber} />
+                  <InfoRow label="Branch" value={branch} />
+                  <InfoRow label="Section" value={extras.section || "A"} />
+                  <InfoRow label="Semester" value={extras.semester ? `Sem ${extras.semester}` : "Sem 8"} />
+                  <InfoRow label="Phone" value={extras.phone || "+91 98765 43210"} />
+                  <InfoRow
+                    label="Batch"
+                    value="2022 - 2026"
+                  />
+                  <InfoRow
+                    label="Registered"
+                    value={new Date(user.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  />
+                </div>
+              </ProfileSection>
 
-        {/* Quick Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <BookOpen className="w-4 h-4" /> Account Information
-            </h3>
-            <div className="space-y-3">
-              <InfoRow label="Full Name" value={user?.fullName || "N/A"} />
-              <InfoRow label="Email" value={user?.email || "N/A"} />
-              <InfoRow label="Role" value={isFaculty ? "Faculty / TPC" : "Student"} />
-              <InfoRow
-                label="Account Created"
-                value={
-                  user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : "N/A"
-                }
-              />
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Sparkles className="w-4 h-4" /> Quick Actions
-            </h3>
-            <div className="space-y-2">
-              {!isFaculty ? (
-                <>
-                  <Link href="/drives">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <GraduationCap className="w-4 h-4 mr-2" /> Browse Placement Drives
-                    </Button>
-                  </Link>
-                  <Link href="/credentials">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <Shield className="w-4 h-4 mr-2" /> Manage Credentials
-                    </Button>
-                  </Link>
-                  <Link href="/ai-assistant">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <Sparkles className="w-4 h-4 mr-2" /> AI Placement Assistant
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/analytics">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <TrendingUp className="w-4 h-4 mr-2" /> View Analytics
-                    </Button>
-                  </Link>
-                  <Link href="/faculty/documents">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <Shield className="w-4 h-4 mr-2" /> Verify Documents
-                    </Button>
-                  </Link>
-                  <Link href="/ai-assistant">
-                    <Button variant="secondary" className="w-full justify-start" size="sm">
-                      <Sparkles className="w-4 h-4 mr-2" /> AI Assistant Tools
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Recent Applications (Students) */}
-        {!isFaculty && myApplications.length > 0 && (
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4" /> Recent Applications
-              </h3>
-              <Link href="/applications">
-                <Button variant="ghost" size="sm">View All →</Button>
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {myApplications.slice(0, 3).map((app) => (
-                <div
-                  key={app.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-surface-hover/50 border border-border/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary text-xs font-bold">
-                        {app.companyName.slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{app.companyName}</p>
-                      <p className="text-xs text-muted-foreground">{app.role}</p>
+              {/* 2. Academic Record */}
+              <ProfileSection title="Academic Record" icon={<GraduationCap className="w-4 h-4 text-accent" />}>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                    <span className="text-sm text-muted-foreground">Current CGPA</span>
+                    <span className="text-lg font-bold text-foreground">{cgpa.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                    <span className="text-sm text-muted-foreground">Active Backlogs</span>
+                    <span className={`text-md font-semibold ${backlogs > 0 ? "text-rose-500" : "text-emerald-500"}`}>
+                      {backlogs}
+                    </span>
+                  </div>
+                  <div className="pb-3 border-b border-white/5">
+                    <span className="text-sm text-muted-foreground block mb-2">Drive Eligibility</span>
+                    <Badge variant={isEligible ? "success" : "warning"}>
+                      {isEligible ? "Eligible for All Drives" : "Conditional Eligibility"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                      <Code2 className="w-3.5 h-3.5" /> Technical Skills
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillsList.map((skill, idx) => (
+                        <Badge key={idx} variant="default" size="sm" className="bg-sidebar-bg border border-white/10 text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                  <Badge
-                    variant={
-                      app.currentStage === "offered"
-                        ? "success"
-                        : app.currentStage === "rejected"
-                        ? "danger"
-                        : "info"
-                    }
-                    size="sm"
-                  >
-                    {app.currentStage.replace("-", " ")}
-                  </Badge>
                 </div>
-              ))}
+              </ProfileSection>
+
+              {/* 7. Social & Professional Links */}
+              <SocialLinksCard
+                github={extras.github}
+                linkedin={extras.linkedin}
+                portfolio={extras.portfolio}
+                onEdit={() => setIsEditModalOpen(true)}
+              />
             </div>
-          </Card>
+
+            {/* Right Column - Stats, Summaries & Placeholder Cards */}
+            <div className="md:col-span-2 space-y-6">
+              {/* 3. Placement Summary */}
+              <ProfileSection title="Placement Summary" icon={<Briefcase className="w-4 h-4 text-primary" />}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <StatCard icon={<FileText />} label="Applied" value={appliedCount} color="primary" />
+                  <StatCard icon={<Star />} label="Shortlisted" value={shortlistedCount} color="accent" />
+                  <StatCard icon={<Award />} label="Offers" value={offersReceived} color="success" />
+                  <StatCard icon={<Shield />} label="Verified Docs" value={verifiedDocs} color="warning" />
+                </div>
+              </ProfileSection>
+
+              {/* 4. Document Verification Summary (Phase 4 Integration) */}
+              <ProfileSection
+                title="Credential & Document Vault (Phase 4)"
+                icon={<FileCheck className="w-4 h-4 text-emerald-500" />}
+                action={
+                  <Link href="/credentials" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    Manage Vault <ChevronRight className="w-3 h-3" />
+                  </Link>
+                }
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg bg-sidebar-bg border border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span className="text-sm font-medium">Verified</span>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-500">{verifiedDocs}</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-sidebar-bg border border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm font-medium">Pending</span>
+                    </div>
+                    <span className="text-sm font-bold text-amber-500">{pendingDocs}</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-sidebar-bg border border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium">Total Docs</span>
+                    </div>
+                    <span className="text-sm font-bold text-foreground">{myDocs.length}</span>
+                  </div>
+                </div>
+              </ProfileSection>
+
+              {/* 8. Placeholder Cards for Blockchain & AI */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Blockchain Credential Verification */}
+                <Card className="flex flex-col h-full bg-gradient-to-br from-sidebar-bg to-sidebar-bg/50 border-primary/20 hover:border-primary/40 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-primary" />
+                    </div>
+                    <Badge variant="info" size="sm">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                  <h3 className="text-lg font-bold mt-2">Blockchain Credential Verification</h3>
+                  <p className="text-sm text-muted-foreground mt-1.5 flex-1">
+                    On-chain tamper-proof verification and cryptographic attestations for college certificates.
+                  </p>
+                  <Link href="/credentials" className="mt-4">
+                    <Button variant="secondary" className="w-full text-primary hover:bg-primary/10" size="sm">
+                      View Documents Vault <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                    </Button>
+                  </Link>
+                </Card>
+
+                {/* AI Career Assistant */}
+                <Card className="flex flex-col h-full bg-gradient-to-br from-sidebar-bg to-sidebar-bg/50 border-accent/20 hover:border-accent/40 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-accent" />
+                    </div>
+                    <Badge variant="success" size="sm">
+                      Available
+                    </Badge>
+                  </div>
+                  <h3 className="text-lg font-bold mt-2">AI Career Assistant</h3>
+                  <p className="text-sm text-muted-foreground mt-1.5 flex-1">
+                    ATS Resume Score, Company Intelligence, and Round-wise Interview Coach.
+                  </p>
+                  <Link href="/ai-assistant" className="mt-4">
+                    <Button variant="secondary" className="w-full text-accent hover:bg-accent/10" size="sm">
+                      Open AI Assistant <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                    </Button>
+                  </Link>
+                </Card>
+              </div>
+
+              {/* 5 & 6. Offer Summary & Upcoming Events (Phase 5) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* 5. Offer Summary */}
+                <ProfileSection
+                  title="Offer Summary (Phase 5)"
+                  icon={<Award className="w-4 h-4 text-emerald-500" />}
+                  action={
+                    <Link href="/offers" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      All Offers <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  }
+                >
+                  {myOffers.length > 0 ? (
+                    <div className="space-y-3">
+                      {myOffers.map((offer) => (
+                        <div
+                          key={offer.id}
+                          className="flex justify-between items-center p-3 rounded-lg bg-sidebar-bg border border-white/5"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold">{offer.companyName}</p>
+                            <p className="text-xs text-muted-foreground">{offer.role}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-emerald-500">₹{offer.packageLPA} LPA</p>
+                            <Badge
+                              variant={offer.status === "accepted" ? "success" : "info"}
+                              size="sm"
+                              className="mt-1"
+                            >
+                              {offer.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-muted-foreground">No offers received yet.</p>
+                      <Link href="/drives">
+                        <Button variant="secondary" size="sm" className="mt-3">
+                          Explore Open Drives
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </ProfileSection>
+
+                {/* 6. Upcoming Events */}
+                <ProfileSection
+                  title="Upcoming Events (Calendar)"
+                  icon={<Calendar className="w-4 h-4 text-primary" />}
+                  action={
+                    <Link href="/calendar" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      Calendar <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  }
+                >
+                  {upcomingEvents.length > 0 ? (
+                    <div className="space-y-3">
+                      {upcomingEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-3 rounded-lg bg-sidebar-bg border border-white/5"
+                        >
+                          <div className="flex justify-between items-start">
+                            <p className="text-sm font-semibold">{event.title}</p>
+                            <Badge variant="default" size="sm" className="text-xs">
+                              {event.type}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(event.date).toLocaleDateString("en-IN", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            at {event.time} • {event.location}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-6 text-center">No upcoming events scheduled.</p>
+                  )}
+                </ProfileSection>
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialData={extras}
+        onSave={handleSaveExtras}
+        isFaculty={false}
+      />
     </>
   );
 }
 
-/* ── Sub-components ────────────────────────────────────────── */
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex justify-between items-start py-1">
+      <span className="text-sm text-muted-foreground font-medium">{label}</span>
+      <span
+        className="text-sm font-semibold text-right max-w-[60%] truncate"
+        title={typeof value === "string" ? value : undefined}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 function StatCard({
   icon,
@@ -251,23 +437,21 @@ function StatCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: number;
-  color: string;
+  value: string | number;
+  color: "primary" | "accent" | "success" | "warning";
 }) {
-  return (
-    <Card className="text-center">
-      <div className="flex justify-center mb-2">{icon}</div>
-      <p className="text-2xl font-black text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-    </Card>
-  );
-}
+  const colorStyles = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    accent: "text-accent bg-accent/10 border-accent/20",
+    success: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    warning: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+  };
 
-function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold text-foreground">{value}</span>
+    <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${colorStyles[color]}`}>
+      <div className="mb-2 opacity-80 *:w-6 *:h-6">{icon}</div>
+      <div className="text-2xl font-black mb-1">{value}</div>
+      <div className="text-xs font-medium uppercase tracking-wider opacity-80">{label}</div>
     </div>
   );
 }

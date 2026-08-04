@@ -26,6 +26,7 @@ const facultyNavItems = [
   { label: "Analytics", href: "/analytics", icon: AnalyticsIcon },
   { label: "Documents", href: "/faculty/documents", icon: DocumentsIcon },
   { label: "AI Assistant", href: "/ai-assistant", icon: AIIcon },
+  { label: "Profile", href: "/faculty/profile", icon: ProfileIcon },
 ];
 
 export default function Sidebar() {
