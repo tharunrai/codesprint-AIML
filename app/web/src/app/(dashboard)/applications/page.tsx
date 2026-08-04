@@ -10,6 +10,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/ui/StageBadge";
 import { type RoundResult } from "@/lib/mock-data";
+import { confirmApplication } from "@/app/actions/pipeline";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
@@ -184,6 +185,26 @@ export default function ApplicationsPage() {
                     </>
                   )}
                   </div>
+
+                  {/* Pending Review Actions */}
+                  {!isFaculty && app.currentStage === "pending_review" && (
+                    <div className="mt-4 pt-4 border-t border-border flex justify-end">
+                      <Button 
+                        size="sm" 
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await confirmApplication(app.id);
+                            window.location.reload();
+                          } catch(err) {
+                            console.error(err);
+                          }
+                        }}
+                      >
+                        Confirm & Apply
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               </Link>
             </div>

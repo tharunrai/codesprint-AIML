@@ -7,13 +7,13 @@ import Badge from "@/components/ui/Badge";
 import { useState } from "react";
 
 const studentNavItems = [
-  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
-  { label: "Drives", href: "/drives", icon: DrivesIcon },
+  { label: "Jobs & Internships", href: "/drives", icon: DrivesIcon },
   { label: "My Applications", href: "/applications", icon: ApplicationsIcon },
-  { label: "Calendar", href: "/calendar", icon: CalendarIcon },
-  { label: "My Offers", href: "/offers", icon: OffersIcon },
   { label: "Credentials", href: "/credentials", icon: DocumentsIcon },
+  { label: "My Offers", href: "/offers", icon: OffersIcon },
   { label: "AI Assistant", href: "/ai-assistant", icon: AIIcon },
+  { label: "Calendar", href: "/calendar", icon: CalendarIcon },
+  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
   { label: "Profile", href: "/profile", icon: ProfileIcon },
 ];
 

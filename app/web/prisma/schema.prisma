@@ -19,6 +19,7 @@ enum Role {
 }
 
 enum ApplicationStatus {
+  PENDING_REVIEW
   APPLIED
   SHORTLISTED
   IN_PROGRESS
@@ -99,6 +100,8 @@ model StudentProfile {
 
   resumeUrl  String? // latest resume file, direct pointer
   resumeHash String? // hash of latest resume, if you want tamper-check without full on-chain flow
+
+  verifiedProfile Json? // AI-generated structured profile based on verified credentials
 
   walletAddress   String? @unique // custodial wallet, inline — no separate Wallet table
   walletEncKeyRef String? // pointer into secrets manager

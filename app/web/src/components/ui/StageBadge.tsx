@@ -8,6 +8,7 @@ interface StageBadgeProps {
 }
 
 const stageVariantMap: Record<ApplicationStage, "default" | "success" | "warning" | "danger" | "info"> = {
+  pending_review: "warning",
   applied: "default",
   shortlisted: "info",
   "round-1": "info",

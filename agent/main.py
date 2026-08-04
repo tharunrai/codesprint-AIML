@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routers.coach import router as coach_router
 from api.routers.company import router as company_router
 from api.routers.resume import router as resume_router
+from api.routers.pipeline import router as pipeline_router
 
 app = FastAPI(
     title="Placement Portal AI Agent API",
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(resume_router)
 app.include_router(company_router)
 app.include_router(coach_router)
+app.include_router(pipeline_router)
 
 
 @app.get("/")
