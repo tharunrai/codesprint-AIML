@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       const ok = await login(email, password);
       if (ok) {
-        router.push("/dashboard");
+        router.push("/drives");
       } else {
         setError("Invalid credentials. Please try again.");
       }

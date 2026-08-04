@@ -15,6 +15,7 @@ from config import AI_MODEL_NAME
 from api.routers.coach import router as coach_router
 from api.routers.company import router as company_router
 from api.routers.resume import router as resume_router
+from api.routers.pipeline import router as pipeline_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("api")
@@ -46,6 +47,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(resume_router)
 app.include_router(company_router)
 app.include_router(coach_router)
+app.include_router(pipeline_router)
 
 
 @app.get("/")

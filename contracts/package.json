@@ -10,8 +10,7 @@
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "node": "hardhat node",
     "deploy-local": "hardhat run scripts/deploy.js --network hardhat",
-    "transfer-ownership": "hardhat run scripts/transferOwnership.js --network localhost",
-    "whitelist": "hardhat run scripts/whitelist.js --network localhost"
+    "transfer-ownership": "hardhat run scripts/transferOwnership.js --network localhost"
   },
   "keywords": [],
   "author": "",

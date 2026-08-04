@@ -22,6 +22,12 @@ export default function DrivesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("deadline");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [eligibleOnly, setEligibleOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("deadline");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
   useEffect(() => {
     async function load() {
       try {

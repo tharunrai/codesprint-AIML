@@ -17,7 +17,6 @@ contract CredentialRegistry {
 
     // ============ Structs ============
     struct Credential {
-        string eduId;
         address issuer;
         address studentWallet;
         string studentName;
@@ -34,9 +33,6 @@ contract CredentialRegistry {
 
     // Credentials storage: eduId => Credential
     mapping(string => Credential) public credentials;
-
-    // Track if eduId exists
-    mapping(string => bool) public eduIdExists;
 
     // Student credentials: studentWallet => eduId[]
     mapping(address => string[]) public studentCredentials;
@@ -98,7 +94,6 @@ contract CredentialRegistry {
 
         // Store credential
         credentials[eduId] = Credential({
-            eduId: eduId,
             issuer: msg.sender,
             studentWallet: studentWallet,
             studentName: studentName,
@@ -109,9 +104,6 @@ contract CredentialRegistry {
             documentHash: documentHash,
             revoked: false
         });
-
-        // Mark as existing
-        eduIdExists[eduId] = true;
 
         // Add to student's credentials
         studentCredentials[studentWallet].push(eduId);
@@ -138,7 +130,7 @@ contract CredentialRegistry {
         external
         onlyCollege
     {
-        require(eduIdExists[eduId], "Credential does not exist");
+        require(credentials[eduId].issueDate != 0, "Credential does not exist");
         require(!credentials[eduId].revoked, "Credential already revoked");
 
         credentials[eduId].revoked = true;
@@ -159,10 +151,9 @@ contract CredentialRegistry {
         view
         returns (Credential memory credential, bool exists)
     {
-        if (!eduIdExists[eduId]) {
+        if (credentials[eduId].issueDate == 0) {
             return (
                 Credential(
-                    "",
                     address(0),
                     address(0),
                     "",
@@ -186,7 +177,7 @@ contract CredentialRegistry {
      * @return isValid Whether the credential is valid
      */
     function isCredentialValid(string memory eduId) external view returns (bool) {
-        return eduIdExists[eduId] && !credentials[eduId].revoked;
+        return credentials[eduId].issueDate != 0 && !credentials[eduId].revoked;
     }
 
     /**
@@ -202,19 +193,7 @@ contract CredentialRegistry {
         return studentCredentials[studentWallet];
     }
 
-    /**
-     * @dev Get details of a specific credential
-     * @param eduId The education ID
-     * @return The credential struct
-     */
-    function getCredentialDetails(string memory eduId)
-        external
-        view
-        returns (Credential memory)
-    {
-        require(eduIdExists[eduId], "Credential does not exist");
-        return credentials[eduId];
-    }
+
 
     /**
      * @dev Get total number of credentials in registry

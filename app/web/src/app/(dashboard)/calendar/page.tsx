@@ -1,102 +1,223 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { usePlacement } from "@/context/PlacementContext";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
-import CalendarTimeline from "@/components/calendar/CalendarTimeline";
-import EventDetailsPanel from "@/components/calendar/EventDetailsPanel";
-import { type CalendarEvent, type CalendarEventType } from "@/lib/mock-data";
+import { getCalendarEvents } from "@/app/actions/calendar";
+
+type SortOrder = "asc" | "desc";
+
+const TYPE_LABELS: Record<string, string> = {
+  interview: "Interview",
+  assessment: "Assessment",
+  "offer-deadline": "Offer Deadline",
+  "campus-drive": "Campus Drive",
+  "placement-event": "Placement Event",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  interview: "bg-primary/10 text-primary",
+  assessment: "bg-warning/10 text-warning",
+  "offer-deadline": "bg-success/10 text-success",
+  "campus-drive": "bg-purple-500/10 text-purple-400",
+  "placement-event": "bg-muted/20 text-muted-foreground",
+};
 
 export default function CalendarPage() {
   const { user } = useAuth();
-  const { calendarEvents } = usePlacement();
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const isFaculty = user?.role === "FACULTY";
 
-  // Filter events based on user role
-  const visibleEvents = calendarEvents.filter((evt) => {
-    if (isFaculty) return true; // Faculty sees all placement schedules
-    return evt.targetRole === "student" || evt.targetRole === "both";
-  });
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getCalendarEvents();
+        setEvents(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
-  const legendItems: { type: CalendarEventType; label: string; bgClass: string; textClass: string }[] = [
-    { type: "interview", label: "Interview", bgClass: "bg-primary", textClass: "text-primary" },
-    { type: "assessment", label: "Assessment", bgClass: "bg-warning", textClass: "text-warning" },
-    { type: "offer-deadline", label: "Offer Deadline", bgClass: "bg-success", textClass: "text-success" },
-    { type: "campus-drive", label: "Campus Drive", bgClass: "bg-purple-500", textClass: "text-purple-400" },
-    { type: "placement-event", label: "Placement Event", bgClass: "bg-muted-foreground", textClass: "text-muted-foreground" },
-  ];
+  const visibleEvents = events
+    .filter((e) => {
+      if (!isFaculty && e.targetRole === "faculty") return false;
+      if (typeFilter !== "all" && e.type !== typeFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      return sortOrder === "asc" ? diff : -diff;
+    });
+
+  // Group by date
+  const grouped: Record<string, any[]> = {};
+  for (const evt of visibleEvents) {
+    if (!grouped[evt.date]) grouped[evt.date] = [];
+    grouped[evt.date].push(evt);
+  }
+
+  const uniqueTypes = Array.from(new Set(events.map((e) => e.type)));
 
   return (
     <>
       <Header
-        title="Placement & Interview Calendar"
+        title={isFaculty ? "Recruitment Schedule" : "My Placement Calendar"}
         subtitle={
           isFaculty
-            ? "Campus recruitment schedule, online assessments & drive milestones"
-            : "Keep track of your upcoming interviews, tests, and offer deadlines"
+            ? `${visibleEvents.length} events across all drives — spot scheduling conflicts at a glance`
+            : "Upcoming interviews, assessments, and deadlines"
         }
       />
 
-      <div className="p-6 space-y-6">
-        {/* Color Legend Row */}
-        <Card padding="sm" className="bg-surface/60">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Event Types Legend:
-            </span>
-            <div className="flex flex-wrap items-center gap-4">
-              {legendItems.map((item) => (
-                <div key={item.type} className="flex items-center gap-2">
-                  <span className={`w-3 h-3 rounded-full ${item.bgClass}`} />
-                  <span className="text-xs font-semibold text-foreground">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        {/* Main Grid + Sidebar Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* Calendar Grid (Spans 2 Cols) */}
-          <div className="lg:col-span-2 space-y-6">
-            <CalendarTimeline
-              events={visibleEvents}
-              selectedEventId={selectedEvent?.id}
-              onEventSelect={(evt) => setSelectedEvent(evt)}
+      <div className="p-6 space-y-5 max-w-4xl">
+        {/* Controls bar */}
+        <div className="flex flex-wrap gap-3 items-center animate-fade-in">
+          {/* Type filter pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            <FilterPill
+              active={typeFilter === "all"}
+              onClick={() => setTypeFilter("all")}
+              label="All"
             />
+            {uniqueTypes.map((t) => (
+              <FilterPill
+                key={t}
+                active={typeFilter === t}
+                onClick={() => setTypeFilter(t)}
+                label={TYPE_LABELS[t] ?? t}
+              />
+            ))}
           </div>
 
-          {/* Event Details Panel */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-6">
-              <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-                <h3 className="font-bold text-foreground">Event Details</h3>
-              </div>
-
-              {selectedEvent ? (
-                <EventDetailsPanel event={selectedEvent} onClose={() => setSelectedEvent(null)} />
-              ) : (
-                <div className="text-center py-10 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-muted/20 text-muted-foreground mx-auto flex items-center justify-center">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Select an event to view details
-                  </p>
-                </div>
-              )}
-            </Card>
-          </div>
+          {/* Sort order toggle */}
+          <button
+            onClick={() => setSortOrder((s) => (s === "asc" ? "desc" : "asc"))}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-hover border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 20V4" />
+            </svg>
+            {sortOrder === "asc" ? "Earliest first" : "Latest first"}
+          </button>
         </div>
+
+        {loading ? (
+          <div className="flex justify-center p-20">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : visibleEvents.length === 0 ? (
+          <Card>
+            <div className="py-16 text-center text-sm text-muted-foreground">No events found.</div>
+          </Card>
+        ) : (
+          Object.entries(grouped).map(([date, dayEvents]) => {
+            const d = new Date(date);
+            const isToday = new Date().toDateString() === d.toDateString();
+            const isPast = d < new Date(new Date().toDateString());
+            return (
+              <div key={date} className="animate-fade-in">
+                {/* Date header */}
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border text-center leading-tight
+                      ${isToday ? "bg-primary text-white border-primary shadow-md shadow-primary/30" : isPast ? "bg-surface-hover text-muted-foreground border-border" : "bg-background text-foreground border-border"}`}
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-wider">
+                      {d.toLocaleDateString("en-US", { month: "short" })}
+                    </span>
+                    <span className="text-lg font-black leading-none">
+                      {d.toLocaleDateString("en-US", { day: "numeric" })}
+                    </span>
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold ${isPast ? "text-muted-foreground" : "text-foreground"}`}>
+                      {isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "long" })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {dayEvents.length} event{dayEvents.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Events for this date */}
+                <div className="ml-15 pl-3 border-l-2 border-border space-y-2 ml-6">
+                  {dayEvents.map((evt) => (
+                    <div
+                      key={evt.id}
+                      className={`flex items-start gap-4 p-4 rounded-xl bg-surface border border-border hover:bg-surface-hover transition-colors ${isPast ? "opacity-60" : ""}`}
+                    >
+                      <span
+                        className={`mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide shrink-0 ${TYPE_COLORS[evt.type] ?? "bg-muted text-muted-foreground"}`}
+                      >
+                        {TYPE_LABELS[evt.type] ?? evt.type}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground leading-tight">{evt.title}</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+                          {evt.company && <span>{evt.company}</span>}
+                          {evt.time && (
+                            <>
+                              <span>·</span>
+                              <span>{evt.time}</span>
+                            </>
+                          )}
+                          {evt.durationMins && (
+                            <>
+                              <span>·</span>
+                              <span>{evt.durationMins}m</span>
+                            </>
+                          )}
+                          {evt.location && (
+                            <>
+                              <span>·</span>
+                              <span className="truncate">{evt.location}</span>
+                            </>
+                          )}
+                        </div>
+                        {evt.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{evt.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </>
+  );
+}
+
+function FilterPill({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 cursor-pointer
+        ${active
+          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+          : "bg-surface-hover text-muted-foreground border-border hover:text-foreground"
+        }`}
+    >
+      {label}
+    </button>
   );
 }

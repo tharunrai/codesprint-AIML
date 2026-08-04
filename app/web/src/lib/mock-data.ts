@@ -114,6 +114,7 @@ export interface RoundInfo {
 }
 
 export type ApplicationStage =
+  | "pending_review"
   | "applied"
   | "shortlisted"
   | "round-1"
@@ -837,6 +838,7 @@ export function formatCTC(ctcLakh: number): string {
 /** Get human-readable stage label */
 export function getStageLabel(stage: ApplicationStage): string {
   const labels: Record<ApplicationStage, string> = {
+    pending_review: "Pending Review",
     applied: "Applied",
     shortlisted: "Shortlisted",
     "round-1": "Round 1",

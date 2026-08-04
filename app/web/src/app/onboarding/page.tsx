@@ -47,7 +47,7 @@ export default function OnboardingPage() {
     await new Promise((r) => setTimeout(r, 800));
     completeOnboarding();
     setLoading(false);
-    router.push("/dashboard");
+    router.push("/drives");
   }
 
   return (
