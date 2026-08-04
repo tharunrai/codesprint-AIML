@@ -13,6 +13,7 @@ const studentNavItems = [
   { label: "Calendar", href: "/calendar", icon: CalendarIcon },
   { label: "My Offers", href: "/offers", icon: OffersIcon },
   { label: "Credentials", href: "/credentials", icon: DocumentsIcon },
+  { label: "AI Assistant", href: "/ai-assistant", icon: AIIcon },
   { label: "Profile", href: "/profile", icon: ProfileIcon },
 ];
 
@@ -24,6 +25,7 @@ const facultyNavItems = [
   { label: "Offers", href: "/faculty/offers", icon: OffersIcon },
   { label: "Analytics", href: "/analytics", icon: AnalyticsIcon },
   { label: "Documents", href: "/faculty/documents", icon: DocumentsIcon },
+  { label: "AI Assistant", href: "/ai-assistant", icon: AIIcon },
 ];
 
 export default function Sidebar() {
@@ -222,3 +224,12 @@ function OffersIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+function AIIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.09 5.26L20 8.27l-4.08 3.97.96 5.63L12 15.4l-4.88 2.47.96-5.63L4 8.27l5.91-1.01L12 2z" />
+    </svg>
+  );
+}
+

@@ -176,3 +176,41 @@ export async function getBundleVerificationDetails(identifier: string) {
     credentials,
   };
 }
+
+export async function getAllCredentials() {
+  const credentials = await prisma.credential.findMany({
+    include: {
+      student: {
+        include: { user: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return credentials.map((c) => ({
+    id: c.id,
+    studentId: c.studentId,
+    studentName: c.student.user.fullName,
+    rollNumber: c.student.rollNumber,
+    branch: c.student.branch,
+    type: c.docType.toLowerCase(),
+    fileName: (c as any).fileName || "document.pdf",
+    fileSize: (c as any).fileSize || "Unknown size",
+    status: c.status.toLowerCase(),
+    uploadedAt: c.createdAt.toISOString(),
+    remarks: c.revokedReason || "",
+    verifiedAt: c.updatedAt.toISOString(),
+  }));
+}
+
+export async function updateCredentialStatus(id: string, status: "VERIFIED" | "REJECTED", remarks?: string) {
+  const updated = await prisma.credential.update({
+    where: { id },
+    data: {
+      status,
+      revokedReason: remarks,
+    },
+  });
+  revalidatePath("/faculty/documents");
+  return updated;
+}

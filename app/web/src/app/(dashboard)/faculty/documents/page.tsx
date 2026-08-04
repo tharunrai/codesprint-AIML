@@ -1,19 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { usePlacement } from "@/context/PlacementContext";
+import { getAllCredentials, updateCredentialStatus } from "@/app/actions/credentials";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
-import { type DocumentType, type DocumentStatus } from "@/lib/mock-data";
+import { type DocumentStatus } from "@/lib/mock-data";
 
 export default function FacultyDocumentsPage() {
   const { user } = useAuth();
-  const { documents, verifyDocument } = usePlacement();
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<DocumentStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewDocId, setPreviewDocId] = useState<string | null>(null);
@@ -22,6 +23,20 @@ export default function FacultyDocumentsPage() {
   const [remarksState, setRemarksState] = useState<Record<string, string>>({});
   // Track which documents are in "editing/re-evaluating" mode
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getAllCredentials();
+        setDocuments(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const isFaculty = user?.role === "FACULTY";
 
@@ -69,8 +84,8 @@ export default function FacultyDocumentsPage() {
     return matchesStatus && matchesSearch;
   });
 
-  const getDocIcon = (type: DocumentType) => {
-    switch (type) {
+  const getDocIcon = (type: string) => {
+    switch (type.toLowerCase()) {
       case "resume":
         return (
           <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -97,10 +112,19 @@ export default function FacultyDocumentsPage() {
     }
   };
 
-  const handleVerify = (docId: string, status: "verified" | "rejected") => {
+  const handleVerify = async (docId: string, status: "verified" | "rejected") => {
     const remarks = remarksState[docId] || "";
-    verifyDocument(docId, status, remarks);
+    // Optimistic update
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, status, remarks } : d))
+    );
     setEditingDocId(null);
+    try {
+      await updateCredentialStatus(docId, status.toUpperCase() as any, remarks);
+    } catch (e) {
+      console.error(e);
+      // Rollback would go here
+    }
   };
 
   return (
@@ -112,6 +136,10 @@ export default function FacultyDocumentsPage() {
 
       <div className="p-6 space-y-6 max-w-7xl">
         {/* Filters */}
+        {loading ? (
+           <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
+        ) : (
+          <>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border">
           <div className="flex flex-wrap gap-2">
             {(["all", "pending", "verified", "rejected"] as const).map((s) => {
@@ -329,6 +357,7 @@ export default function FacultyDocumentsPage() {
             })}
           </div>
         )}
+        </>)}
       </div>
     </>
   );

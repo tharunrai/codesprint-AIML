@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { usePlacement } from "@/context/PlacementContext";
+import { getApplications } from "@/app/actions/applications";
+import { getDrives } from "@/app/actions/drives";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -12,8 +13,25 @@ import { type RoundResult } from "@/lib/mock-data";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
-  const { applications, drives } = usePlacement();
+  const [applications, setApplications] = useState<any[]>([]);
+  const [drives, setDrives] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedDriveId, setSelectedDriveId] = useState<string>("all");
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [_apps, _drives] = await Promise.all([getApplications(), getDrives()]);
+        setApplications(_apps);
+        setDrives(_drives);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const isFaculty = user?.role === "FACULTY";
 
@@ -42,6 +60,12 @@ export default function ApplicationsPage() {
       />
 
       <div className="p-6 space-y-6 max-w-5xl">
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <>
         {/* Faculty Drive Selector */}
         {isFaculty && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border">
@@ -85,10 +109,11 @@ export default function ApplicationsPage() {
             </Link>
           </div>
         ) : (
-          displayApplications.map((app) => (
-            <Link key={app.id} href={`/drives/${app.driveId}`}>
-              <Card hover className="mb-4">
-                {/* Header row */}
+          displayApplications.map((app, index) => (
+            <div key={app.id} className={`animate-fade-in stagger-${(index % 5) + 1}`}>
+              <Link href={`/drives/${app.driveId}`}>
+                <Card className="mb-4 hover-lift">
+                  {/* Header row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0">
@@ -158,10 +183,13 @@ export default function ApplicationsPage() {
                       </span>
                     </>
                   )}
-                </div>
-              </Card>
-            </Link>
+                  </div>
+                </Card>
+              </Link>
+            </div>
           ))
+        )}
+        </>
         )}
       </div>
     </>
@@ -172,9 +200,9 @@ export default function ApplicationsPage() {
 
 function RoundPill({ round }: { round: RoundResult }) {
   const styles = {
-    passed: "bg-success/15 text-success border-success/30",
-    failed: "bg-danger/15 text-danger border-danger/30",
-    pending: "bg-warning/15 text-warning border-warning/30 animate-pulse",
+    passed: "bg-gradient-to-r from-success/20 to-success/10 text-success border-success/30 shadow-sm",
+    failed: "bg-gradient-to-r from-danger/20 to-danger/10 text-danger border-danger/30 shadow-sm",
+    pending: "bg-gradient-to-r from-warning/20 to-warning/10 text-warning border-warning/30 animate-pulse shadow-sm",
     upcoming: "bg-surface-hover text-muted border-border",
   };
 

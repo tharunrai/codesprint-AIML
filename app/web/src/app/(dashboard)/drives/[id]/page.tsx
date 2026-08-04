@@ -81,14 +81,12 @@ export default function DriveDetailPage() {
     updateDriveStatus(drive.id, isClosed ? "open" : "closed");
   }
 
-  // TODO: Wire up real AI Prep Coach integration (section 4.5 of specs.md)
   function handleAIPrepCoach() {
-    alert("AI Prep Coach — coming soon! This feature is being built by a teammate.");
+    router.push("/ai-assistant");
   }
 
-  // TODO: Wire up real Company Research Assistant integration (section 4.5 of specs.md)
   function handleCompanyResearch() {
-    alert("Company Research Assistant — coming soon! This feature is being built by a teammate.");
+    router.push("/ai-assistant");
   }
 
   return (

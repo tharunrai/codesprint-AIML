@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { usePlacement } from "@/context/PlacementContext";
+import { getDrives } from "@/app/actions/drives";
 import Header from "@/components/layout/Header";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -14,13 +14,22 @@ type StatusFilter = "all" | "open" | "ongoing" | "closed";
 
 export default function DrivesPage() {
   const { user } = useAuth();
-  const { drives, addDrive, updateDriveStatus } = usePlacement();
-
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [eligibleOnly, setEligibleOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("deadline");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [drives, setDrives] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getDrives();
+        setDrives(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const isFaculty = user?.role === "FACULTY";
 
@@ -85,6 +94,12 @@ export default function DrivesPage() {
 
       <div className="p-6 space-y-6">
         {/* Faculty Banner / Quick Action */}
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <>
         {isFaculty && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-transparent border border-primary/20">
             <div>
@@ -110,7 +125,7 @@ export default function DrivesPage() {
         )}
 
         {/* Filters bar */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 animate-fade-in stagger-1">
           {/* Search */}
           <div className="flex-1">
             <Input
@@ -189,13 +204,13 @@ export default function DrivesPage() {
 
         {/* Drive grid */}
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-fade-in stagger-2">
             {filtered.map((drive) => (
               <DriveCard
                 key={drive.id}
                 drive={drive}
                 currentUser={user as any}
-                onToggleStatus={(driveId, newStatus) => updateDriveStatus(driveId, newStatus)}
+                onToggleStatus={(driveId, newStatus) => { /* TODO: server action */ }}
               />
             ))}
           </div>
@@ -215,6 +230,7 @@ export default function DrivesPage() {
             </p>
           </div>
         )}
+        </>)}
       </div>
 
       {/* Create Drive Modal */}
@@ -222,7 +238,7 @@ export default function DrivesPage() {
         <CreateDriveModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={(newDrive) => addDrive(newDrive)}
+          onSubmit={(newDrive) => { /* TODO: server action for create drive */ }}
         />
       )}
     </>

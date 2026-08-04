@@ -13,12 +13,48 @@ import {
   type ApplicationStage,
 } from "@/lib/mock-data";
 import Link from "next/link";
+import { getDrives } from "@/app/actions/drives";
+import { getApplications } from "@/app/actions/applications";
+import { getAllCredentials, getStudentCredentials } from "@/app/actions/credentials";
+import { getCalendarEvents } from "@/app/actions/calendar";
+import { getOfferLetters } from "@/app/actions/offers";
+import { useState, useEffect } from "react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { drives, applications, documents, calendarEvents, offerLetters } = usePlacement();
+  
+  const [drives, setDrives] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [offerLetters, setOfferLetters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isFaculty = user?.role === "FACULTY";
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [_drives, _apps, _cal, _offers, _docs] = await Promise.all([
+          getDrives(),
+          getApplications(),
+          getCalendarEvents(),
+          getOfferLetters(),
+          isFaculty ? getAllCredentials() : getStudentCredentials()
+        ]);
+        setDrives(_drives);
+        setApplications(_apps);
+        setCalendarEvents(_cal);
+        setOfferLetters(_offers);
+        setDocuments(_docs);
+      } catch (e) {
+        console.error("Dashboard data load error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [isFaculty]);
 
   // Student documents metrics
   const myDocs = documents.filter((d) => user && d.studentId === user.id);
@@ -69,8 +105,14 @@ export default function DashboardPage() {
       />
 
       <div className="p-6 space-y-6">
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <>
         {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
           <StatCard
             label={isFaculty ? "Total Active Drives" : "Active Drives"}
             value={activeDrives}
@@ -137,7 +179,7 @@ export default function DashboardPage() {
 
         {/* Student Document Attestation Widget */}
         {!isFaculty && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/5 to-transparent border border-border">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/5 to-transparent border border-border animate-fade-in">
             <div className="space-y-1">
               <h3 className="font-bold text-foreground text-sm">
                 Document Attestation Status
@@ -163,6 +205,30 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+        )}
+
+        {/* AI Quick Actions (Student Only) */}
+        {!isFaculty && (
+          <Card className="bg-gradient-to-r from-primary/5 via-accent/5 to-transparent border-primary/15 animate-fade-in">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l2.09 5.26L20 8.27l-4.08 3.97.96 5.63L12 15.4l-4.88 2.47.96-5.63L4 8.27l5.91-1.01L12 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground text-sm">AI Placement Assistant</h3>
+                  <p className="text-xs text-muted-foreground">Get AI-powered resume analysis, company research, and round-specific coaching.</p>
+                </div>
+              </div>
+              <Link href="/ai-assistant">
+                <Button size="sm">
+                  Open AI Suite →
+                </Button>
+              </Link>
+            </div>
+          </Card>
         )}
 
         {/* Phase 5 Widgets */}
@@ -346,6 +412,8 @@ export default function DashboardPage() {
             )}
           </Card>
         </div>
+        </>
+        )}
       </div>
     </>
   );

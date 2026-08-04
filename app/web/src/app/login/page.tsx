@@ -56,16 +56,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background animate-fade-in">
       {/* Left panel — decorative */}
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary via-accent to-primary/80 relative overflow-hidden">
         {/* Floating shapes for visual depth */}
         <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white/10 rounded-2xl blur-2xl -translate-x-1/2 -translate-y-1/2 rotate-45" />
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse-subtle" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse-subtle stagger-2" />
+          <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white/10 rounded-2xl blur-2xl -translate-x-1/2 -translate-y-1/2 rotate-45 animate-pulse-subtle stagger-4" />
         </div>
-        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+        <div className="relative z-10 flex flex-col justify-center px-16 text-white animate-slide-in-right">
           <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-8">
             <span className="text-2xl font-bold">P</span>
           </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
 
       {/* Right panel — login form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-8 animate-fade-in-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -136,26 +136,65 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Demo Credentials Helper */}
-          <div className="bg-muted/30 p-3 rounded-lg border border-border/50 text-sm mb-4 space-y-2">
-            <p className="font-medium text-muted-foreground">Demo Credentials:</p>
-            <div className="flex gap-2">
-              <button 
-                type="button" 
-                onClick={() => { setEmail("arjun.mehta@college.edu"); setPassword("password123"); setRole("STUDENT"); }}
-                className="px-3 py-1 bg-background border rounded text-xs hover:bg-accent/10 transition-colors cursor-pointer"
+          {/* Demo Credentials Helper Card Layout */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Quick Demo Access (Testing)
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Student Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("arjun.mehta@college.edu");
+                  setPassword("password123");
+                  setRole("STUDENT");
+                }}
+                className={`
+                  text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer
+                  ${
+                    email === "arjun.mehta@college.edu"
+                      ? "bg-primary/5 border-primary shadow-sm"
+                      : "bg-surface border-border hover:border-border-hover hover:bg-surface-hover"
+                  }
+                `}
               >
-                Fill Student
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="font-semibold text-sm">Student Portal</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">Arjun Mehta</p>
+                <p className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">arjun.mehta@...</p>
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setEmail("priya.sharma@college.edu"); setPassword("password123"); setRole("FACULTY"); }}
-                className="px-3 py-1 bg-background border rounded text-xs hover:bg-accent/10 transition-colors cursor-pointer"
+
+              {/* Faculty Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("priya.sharma@college.edu");
+                  setPassword("password123");
+                  setRole("FACULTY");
+                }}
+                className={`
+                  text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer
+                  ${
+                    email === "priya.sharma@college.edu"
+                      ? "bg-amber-500/5 border-amber-500 shadow-sm"
+                      : "bg-surface border-border hover:border-border-hover hover:bg-surface-hover"
+                  }
+                `}
               >
-                Fill Faculty
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="font-semibold text-sm">Faculty / TPC</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">Dr. Priya Sharma</p>
+                <p className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">priya.sharma@...</p>
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 italic">Click one, then click "Sign Up" if it's your first time, or "Sign In" otherwise.</p>
+            <p className="text-[10px] text-muted-foreground italic text-center">
+              Click a card to fill credentials, then select <strong>Sign in</strong> or <strong>Sign up</strong>.
+            </p>
           </div>
 
           {/* Form */}
@@ -199,7 +238,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               loading={loading}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white shadow-md shadow-primary/10 transition-all duration-200 active:scale-[0.98]"
               size="lg"
             >
               {isSignUp ? "Sign up" : "Sign in"}

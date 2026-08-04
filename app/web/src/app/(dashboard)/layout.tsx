@@ -28,8 +28,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      {/* Main content — offset by sidebar width. Uses peer selector for collapsed state. */}
-      <main className="flex-1 ml-64 transition-all duration-300">
+      {/* Main content — offset by sidebar width on large screens. */}
+      <main className="flex-1 lg:ml-64 w-full transition-all duration-300 min-h-screen overflow-x-hidden">
         {children}
       </main>
     </div>
