@@ -6,11 +6,18 @@ Mounts CORS middleware and feature routers for:
 3. Round-wise Prep Coach (/api/prep-coach)
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import time
+import logging
+
+from config import AI_MODEL_NAME
 from api.routers.coach import router as coach_router
 from api.routers.company import router as company_router
 from api.routers.resume import router as resume_router
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("api")
 
 app = FastAPI(
     title="Placement Portal AI Agent API",
@@ -26,6 +33,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = (time.time() - start_time) * 1000
+    logger.info(f"{request.method} {request.url.path} - {response.status_code} - {process_time:.2f}ms - model: {AI_MODEL_NAME}")
+    return response
 
 # Include feature routers
 app.include_router(resume_router)

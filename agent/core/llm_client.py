@@ -75,7 +75,6 @@ def chat(system_prompt: str, user_prompt: str) -> str:
             httpx.TimeoutException,
             httpx.NetworkError,
             httpx.HTTPStatusError,
-            Exception,
         ) as exc:
             last_error = exc
             logger.warning(f"LLM call attempt {attempt}/{max_attempts} failed: {exc}")

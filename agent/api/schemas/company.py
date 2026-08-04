@@ -9,7 +9,12 @@ class CompanyRequest(BaseModel):
 
 
 class CompanyBrief(BaseModel):
-    company_overview: str
-    tech_stack: list[str]
-    domain_focus: str
-    interview_pattern: str
+    companyName: str
+    role: str
+    overview: str
+    techStack: list[str]
+    culture: str
+    interviewProcess: str
+    recentNews: list[str]
+    salaryRange: str
+    tips: list[str]
