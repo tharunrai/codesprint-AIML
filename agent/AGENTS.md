@@ -215,6 +215,68 @@ Implemented by `ok()`/`fail()` in `api/envelope.py`. **The frontend reads `res.d
 
 **IMPORTANT (read before coding the `/api/prep-coach` route):** the frontend drives with `{company, role, round}` where `round` is a real round name. Keep that. Prep coach responds with `PrepPlan` (§5), NOT the old `{topic_checklist, likely_questions, round_strategy}` shape.
 
+### 5.1 FRONTEND CONNECTION SPEC (how the browser wires to this backend — LOCKED)
+
+> This is the zero-guess wiring guide. Currently the frontend (`app/web/src/app/(dashboard)/ai-assistant/page.tsx`) calls its OWN fake route `POST /api/ai` with a JSON `{action, ...}` body and reads the shape DIRECTLY (`const data = await res.json(); setResult(data)`). The real backend ALSO wraps everything in `{success, data}`. So the frontend must (a) change the fetch URL + field names, and (b) unwrap `.data`.
+
+**Base URL:** the agent server runs at `http://127.0.0.1:8000` (CORS is wide open already — no frontend CORS change needed). Frontend dev server is `:3000`.
+
+**Envelope unwrap + error handling — apply to ALL three:**
+```ts
+const res = await fetch(`${BASE_URL}/api/<endpoint>`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ <backend fields below> }),
+});
+const body = await res.json();
+if (!body.success) {
+  // body = {success:false, error:{code, message}}  → show body.error.message w/ retry
+  return;
+}
+const data = body.data; // <-- the §5 shape; render this
+```
+
+**Replacements (old frontend → new):**
+
+| From `/api/ai` action | Endpoint on agent | Field translation |
+|---|---|---|
+| `resume-analyze` | `POST http://127.0.0.1:8000/api/analyze-resume` | `resumeText`→`resume_text`, `targetRole`→`target_role` |
+| `company-research` | `POST http://127.0.0.1:8000/api/company-research` | `companyName`→`company`, `role`→`role` |
+| `prep-coach` | `POST http://127.0.0.1:8000/api/prep-coach` | `company`→`company`, `role`→`role`, `roundType`→`round` |
+
+**`roundType` (enum) → `round` (name) mapping — REQUIRED.** The prep tab has a `<select>` with `roundType` values `oa` / `technical` / `hr` / `system-design`. The backend needs a human round NAME:
+| frontend `roundType` | send as `round` |
+|---|---|
+| `oa` | `Online Assessment (OA)` |
+| `technical` | `Technical Interview` |
+| `hr` | `HR / Behavioral Interview` |
+| `system-design` | `System Design Interview` |
+
+**Resume PDF upload (onboarding or resume tab):** use `multipart/form-data`, NOT JSON:
+```ts
+const fd = new FormData();
+fd.append("file", pdfFile);          // a File object, .pdf, ≤5MB
+fd.append("target_role", targetRole);
+const res = await fetch("http://127.0.0.1:8000/api/analyze-resume-file", { method: "POST", body: fd });
+const body = await res.json();
+const data = body.data; // ResumeReport (§5)
+```
+
+**Context pre-fill (drive detail → AI page):** the two buttons in `app/web/src/app/(dashboard)/drives/[id]/page.tsx` currently `router.push("/ai-assistant")` with NO data. Change them to pass query params so the AI page pre-fills and the student doesn't retype:
+```ts
+function handleAIPrepCoach() {
+  router.push(`/ai-assistant?company=${encodeURIComponent(drive.companyName)}&role=${encodeURIComponent(drive.role)}&round=${encodeURIComponent(drive.rounds?.[0]?.name ?? "Technical Interview")}`);
+}
+function handleCompanyResearch() {
+  router.push(`/ai-assistant?company=${encodeURIComponent(drive.companyName)}&role=${encodeURIComponent(drive.role)}`);
+}
+```
+and the AI page reads them with `useSearchParams()` to pre-fill `companyName`/`prepCompany`/`roundType`/`targetRole`.
+
+**Latency (UX-critical):** real LLM calls take **6–22s** (resume fastest, company/prep slowest). Keep the existing loading states; add `disabled` while loading; do NOT set a client-side fetch timeout under ~30s or the slow calls will fail. Optionally add an abort/retry button.
+
+**How to test after wiring:** run agent on :8000 (`PYTHONPATH= ./venv/Scripts/python.exe -m uvicorn main:app --reload`), frontend on :3000, click the 3 AI tabs. Each must render real LLM content (not the old mock's instant `score: 85`). Company tab must show `companyName/techStack/recentNews/salaryRange`; prep tab must show `topics/questionTypes/proTips`.
+
 ---
 
 ## 6. Response envelope + status codes (LOCKED)
@@ -238,7 +300,7 @@ Every endpoint returns exactly one of:
 
 ## 7. Hard rules
 
-1. **Never** modify `app/web/**` from this folder — frontend is a separate workspace owned by a teammate.
+1. **`app/web` rule:** the AI slice is Mitra's (the `/ai-assistant` page, `app/api/ai/route.ts` mock, AI buttons in `drives/[id]/page.tsx`, onboarding resume upload) — Mitra may edit those. Everything ELSE in `app/web/**` belongs to a teammate — never edit it from this folder.
 2. All LLM calls go through `core/llm_client.py` — never raw urllib/requests/httpx inside routers or services.
 3. System prompts live in `prompts/*.md`.
 4. Never trust raw model output — always `json_utils` → Pydantic validation → envelope.
@@ -369,18 +431,27 @@ Steps:
 
 ---
 
-### Phase 4 — Frontend handoff + demo rehearsal
+### Phase 4 — Wire frontend → backend (AI works end-to-end) — THE CONNECTION PHASE
 
-**Prerequisite:** Phase 2 or 3 committed. **Deliverable:** `FRONTEND_CONTRACT.md` (new file at `agent/` root).
+**Prerequisite:** Phase 2 or 3 committed. **Goal: the `/ai-assistant` page and drive-detail buttons talk to THIS backend. Real LLM responses in the browser. No mock anywhere in the AI path.**
+
+**Ownership: the AI slice is Mitra's** — `app/web/src/app/(dashboard)/ai-assistant/page.tsx`, `app/web/src/app/api/ai/route.ts` (the mock — DELETE it), the AI buttons in `app/web/src/app/(dashboard)/drives/[id]/page.tsx`, and the onboarding resume upload. Everything else in `app/web` stays the teammate's. All wiring below is done by Mitra using §5.1 (the zero-guess spec).
 
 Steps:
-1. Write `FRONTEND_CONTRACT.md` — for the frontend teammate: each endpoint → which page/button → exact payload → how to render (score ring, chips for lists, accordion for briefs) → sample JSON (§5 shapes) → error handling (show `error.message` with retry). Base it on §5 + §6 of this file.
-2. Teammate wires: the two `router.push("/ai-assistant")` buttons in `app/web/src/app/(dashboard)/drives/[id]/page.tsx` (lines ~84–90) → pass `company, role, round` via router query so the AI page pre-fills; onboarding resume upload → `POST /api/analyze-resume-file` (FormData). **Frontend changes are theirs** — you only supply the contract + running server.
-3. Demo rehearsal checklist: onboard → resume scored → drive detail → company brief → apply → applications → prep coach for next round.
+1. **Delete the mock** `app/web/src/app/api/ai/route.ts` — nothing may call `/api/ai` after this phase. If a grep still finds `/api/ai` fetches, they must be replaced (the only callers today are the 3 handlers in `ai-assistant/page.tsx` lines ~84–135).
+2. **Replace the 3 handlers** in `app/web/src/app/(dashboard)/ai-assistant/page.tsx` per §5.1:
+   - `handleResumeAnalyze` → `POST http://127.0.0.1:8000/api/analyze-resume` body `{resume_text, target_role}` → `setResumeResult(body.data)`
+   - `handleCompanyResearch` → `POST http://127.0.0.1:8000/api/company-research` body `{company, role}` → `setCompanyResult(body.data)`
+   - `handlePrepCoach` → `POST http://127.0.0.1:8000/api/prep-coach` body `{company, role, round}` where `round` = the §5.1 `roundType`→name mapping → `setPrepResult(body.data)`
+   - Every handler: unwrap `.data`, check `body.success` first, `console.error(body.error?.message)` on failure, keep `set*Loading` in `finally`.
+3. **Resume upload:** make the file input in the resume tab (and/or onboarding) call `POST http://127.0.0.1:8000/api/analyze-resume-file` with `FormData {file, target_role}` (PDF ≤5MB). Keep the paste-text path as fallback. Do NOT read PDFs with `FileReader.readAsText` (garbles binary) — send the File object itself.
+4. **Drive-detail buttons** (`drives/[id]/page.tsx` `handleAIPrepCoach`/`handleCompanyResearch`): `router.push` with `?company=&role=&round=` query params (§5.1 context pre-fill); `ai-assistant/page.tsx` reads them with `useSearchParams()` to pre-fill `companyName`/`prepCompany`/`roundType`/`targetRole`.
+5. **UX:** keep loading spinners (real calls take 6–22s), no client fetch timeout <30s, disable the button while loading.
+6. Demo rehearsal: onboard → resume scored → drive detail → company brief → apply → applications → prep coach for next round.
 
-**Verify:** full journey works in browser against `http://127.0.0.1:8000` (frontend dev server on :3000).
+**Verify (the whole point of this phase):** backend on :8000 (`PYTHONPATH= ./venv/Scripts/python.exe -m uvicorn main:app --reload`), frontend on :3000 (`npm run dev`). In the browser: paste a resume → **real** score/sections/strengths render (not the mock's instant `score: 85`); company research → real `companyName/techStack/recentNews/salaryRange`; prep coach → real `topics/questionTypes/proTips`; drive-detail buttons land pre-filled. Also test an empty resume → graceful error, no blank screen.
 
-**Locked:** contract field names (§5). **Cut if rushed:** rehearsal (step 3) — but at least click the 3 AI buttons once.
+**Locked:** contract field names (§5), connection spec (§5.1). **Cut if rushed:** step 4 (drive buttons) and step 6 (rehearsal) — but the 3 tabs MUST work end-to-end.
 
 ---
 
@@ -391,8 +462,9 @@ Steps:
 - [x] Phase 2: company + coach services/routers — **schema aligned (Complete)**
 - [x] **Schema + prompts re-aligned to §5 (frontend contract)** — resume/company/coach response shapes
 - [x] Phase 3: tests, logging, stale-file cleanup (README/.env.example/test.py), pytest installed
-- [x] **Pre-frontend fixes (Phase 3 step 7):** live-test keys (`techStack`/`topics`), service fallback prompts → §5, `llm_client.py` except-tuple narrow — MUST be done before Phase 4
-- [ ] Phase 4: FRONTEND_CONTRACT.md + demo rehearsal
+- [x] **Pre-frontend fixes (Phase 3 step 7):** live-test keys (`techStack`/`topics`), service fallback prompts → §5, `llm_client.py` except-tuple narrow — ALL APPLIED + verified via pytest/live test ✅
+- [x] **§5.1 FRONTEND CONNECTION SPEC added** — exact fetch replacements, field translation, envelope unwrap, `roundType`→`round` mapping, FormData upload, context pre-fill
+- [x] Phase 4: **CONNECTION PHASE (Mitra owns AI slice)** — delete `/api/ai` mock, wire 3 tabs in `ai-assistant/page.tsx`, PDF upload, drive buttons pre-fill, end-to-end verify
 
 ## Changelog
 
@@ -407,3 +479,6 @@ Steps:
 | 2026-08-04 | Verified Phase 2 (Company Research, Prep Coach). Updated `CompanyBrief` and `PrepPlan` schemas and prompts to exactly match §5 (camelCase fields, structured topics). Marked Phase 2 as officially complete. | Antigravity |
 | 2026-08-04 | Implemented Phase 3 (Robustness & Tests). Added pytest unit tests and endpoint tests. Added HTTP request logging to `main.py`. Cleaned up `test.py`, `.env.example`, and `README.md` to reflect DeepSeek usage. | Antigravity |
 | 2026-08-04 | Added Phase 3 step 7 PRE-FRONTEND FIXES (Phase 4 gate): live-test `techStack`/`topics` key fix, §5 fallback prompts in services, `llm_client.py` except-tuple narrowing — from full codebase review pass. | Mitra |
+| 2026-08-04 | Added §5.1 FRONTEND CONNECTION SPEC (zero-guess wiring guide): envelope unwrap, field-translation table, `roundType`→`round` mapping, FormData upload, drive-detail context pre-fill, latency/UX notes. Phase 4 now references §5.1 (FRONTEND_CONTRACT.md optional). | Mitra |
+| 2026-08-04 | Phase 4 redefined as THE CONNECTION PHASE: Mitra owns the AI slice of `app/web` (ai-assistant page, `/api/ai` mock → DELETE, AI drive buttons, onboarding upload). Hard rule #1 updated accordingly. Phase 4 now = wire 3 tabs + PDF upload + drive pre-fill + end-to-end verify, not "hand off to teammate". | Mitra |
+| 2026-08-04 | Implemented Phase 4 (Connection Phase). Wired AI Assistant page to use the real FastAPI backend on port 8000. Replaced `/api/ai` fetches with real backend endpoints. Handled `.pdf` file uploads with `FormData`. Prefilled search queries from Drive Detail page buttons. Deleted the mock frontend route. | Antigravity |
