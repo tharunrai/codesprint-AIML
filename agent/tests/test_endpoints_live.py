@@ -45,7 +45,7 @@ async def run_all_tests():
         assert data_company["success"] is True
         print(
             "[OK] POST /api/company-research Passed (Tech Stack:",
-            len(data_company["data"]["tech_stack"]),
+            len(data_company["data"]["techStack"]),
             "technologies)",
         )
 
@@ -61,7 +61,7 @@ async def run_all_tests():
         assert data_coach["success"] is True
         print(
             "[OK] POST /api/prep-coach Passed (Topics:",
-            len(data_coach["data"]["topic_checklist"]),
+            len(data_coach["data"]["topics"]),
             "items)",
         )
 

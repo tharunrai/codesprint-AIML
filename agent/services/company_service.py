@@ -14,7 +14,7 @@ def _get_system_prompt() -> str:
         return PROMPT_FILE.read_text(encoding="utf-8")
     return (
         "You are a campus placement research assistant. Output ONLY valid JSON with keys: "
-        "company_overview, tech_stack (list), domain_focus, interview_pattern."
+        "companyName, role, overview, techStack (list), culture, interviewProcess, recentNews (list), salaryRange, tips (list)."
     )
 
 

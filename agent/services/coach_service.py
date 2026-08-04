@@ -14,7 +14,7 @@ def _get_system_prompt() -> str:
         return PROMPT_FILE.read_text(encoding="utf-8")
     return (
         "You are a placement prep coach. Output ONLY valid JSON with keys: "
-        "topic_checklist (list), likely_questions (list), round_strategy."
+        "company, title, description, topics (list of {name, priority, description}), questionTypes (list), resources (list of {name, url, description}), proTips (list)."
     )
 
 

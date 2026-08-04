@@ -8,10 +8,10 @@
 ## 0. How to use this file (READ THIS FIRST, AI agents included)
 
 - This file is the **contract** between every human and AI agent working on `agent/`.
-- If you are an AI coding agent (Claude Code, Cursor, Copilot, etc.): read the whole file before touching anything. The **Roadmap (§12)** is the plan — execute phases **in order**, one at a time, and stop at the end of each phase to verify + commit.
-- **Never guess.** Every decision that matters is recorded below (§2, §6, §12 per-phase "Locked"). If a step is unclear, look at the referenced file before inventing behavior.
+- If you are an AI coding agent (Claude Code, Cursor, Copilot, etc.): read the whole file before touching anything. The **Roadmap (§9)** is the plan — execute phases **in order**, one at a time, and stop at the end of each phase to verify + commit.
+- **Never guess.** Every decision that matters is recorded below (§2, §5, §6, §9 per-phase "Locked"). If a step is unclear, look at the referenced file before inventing behavior. **When implementing a new endpoint or schema, copy the exact field names from §5 — they must match the frontend.**
 - If you are told to implement a phase, do **only** that phase's steps. No unrelated refactors, no "improvements" outside the scope.
-- After any change: update **§13 Current Status** and append a **Changelog** line. Commit with a message naming the phase.
+- After any change: update **§10 Current Status** and append a **Changelog** line. Commit with a message naming the phase.
 
 ---
 
@@ -44,18 +44,18 @@ Why (recorded so nobody re-litigates):
 
 | Path | Responsibility | State |
 |---|---|---|
-| `main.py` | FastAPI app: CORS, health, mounts routers. Keep thin. | 🔧 placeholder to replace (Phase 1–2) |
-| `config.py` | All env config (key, base URL, model, timeouts) read once. | 🟡 stub (Phase 0) |
-| `api/routers/*.py` | One router per feature: validate → service → respond. | 🟡 stubs (Phase 1–2) |
-| `api/schemas/*.py` | Pydantic request/response models — THE contract. | ✅ done |
-| `api/envelope.py` | `ok()` / `fail()` response envelope helpers. | ❌ create (Phase 1) |
-| `core/llm_client.py` | The ONLY place that talks to the model. Timeout, retries. | 🟡 stub (Phase 0) |
-| `core/json_utils.py` | Parse/repair LLM JSON output. | 🟡 stub (Phase 0) |
-| `core/file_utils.py` | PDF text extraction (pypdf). | ❌ create (Phase 1) |
-| `services/*_service.py` | Business logic per feature: prompt → client → validate. | 🟡 stubs (Phase 1–2) |
-| `prompts/*.md` | System prompts as files. Never inline long prompts in Python. | ✅ drafted, refine as needed |
-| `tests/` | pytest — unit tests (json_utils) + endpoint tests (mocked client). | 🟡 placeholders (Phase 3) |
-| `test.py` | Legacy manual test script. | 🔧 replaced by tests/ (Phase 3) |
+| `main.py` | FastAPI app: CORS, health, mounts routers. Keep thin. | ✅ done |
+| `config.py` | All env config (key, base URL, model, timeouts) read once. | ✅ done |
+| `api/routers/*.py` | One router per feature: validate → service → respond. | ✅ done |
+| `api/schemas/*.py` | Pydantic request/response models — **must match §5 exactly**. | 🔄 re-align to §5 (frontend contract) |
+| `api/envelope.py` | `ok()` / `fail()` response envelope helpers. | ✅ done |
+| `core/llm_client.py` | The ONLY place that talks to the model. Timeout, retries. | ✅ done |
+| `core/json_utils.py` | Parse/repair LLM JSON output. | ✅ done |
+| `core/file_utils.py` | PDF text extraction (pypdf). | ✅ done |
+| `services/*_service.py` | Business logic per feature: prompt → client → validate. | ✅ done (schema re-align only) |
+| `prompts/*.md` | System prompts as files. **Must emit the §5 keys.** | 🔄 re-align to §5 |
+| `tests/` | pytest — unit + endpoint tests (mocked client). | ❌ Phase 3 (currently empty) |
+| `test.py` | Legacy manual test script. | 🔧 delete/archive in Phase 3 |
 
 ## 4. Data flow (one request)
 
@@ -65,33 +65,157 @@ POST /api/<feature>
   → services/<feature>_service.py   load prompts/<feature>.md, build messages
   → core/llm_client.py              call DeepSeek (OpenAI-compatible), timeout + retry
   → core/json_utils.py              strip fences → json.loads → repair
-  → validate against response schema
+  → validate against response schema (the §5 shape)
   → return {success: true, data}  |  {success: false, error: {code, message}}
 ```
 
-## 5. API contract (v1 — LOCKED)
+## 5. API contract (v1 — LOCKED to the frontend)
 
-| Endpoint | Request | Response `data` |
+> **This contract is the single source of truth. Field names here are the EXACT names the frontend renders** (`app/web/src/app/api/ai/route.ts` result interfaces). **Never rename a shared field.** If a name changes, update this table, every schema, every prompt, AND the frontend teammate (FRONTEND_CONTRACT.md). These shapes already match the `/ai-assistant` page.
+
+### Endpoints & request payloads (LOCKED)
+
+| Endpoint | Request | Content-Type |
 |---|---|---|
-| `POST /api/analyze-resume` | JSON `{resume_text, target_role}` | `{score, formatting_issues[], missing_skills[], improved_bullets[]}` |
-| `POST /api/analyze-resume-file` | multipart `file` (PDF ≤5MB) + `target_role` | same as above |
-| `POST /api/company-research` | JSON `{company, role}` | `{company_overview, tech_stack[], domain_focus, interview_pattern}` |
-| `POST /api/prep-coach` | JSON `{company, role, round}` | `{topic_checklist[], likely_questions[], round_strategy}` |
+| `POST /api/analyze-resume` | JSON `{resume_text, target_role}` | `application/json` |
+| `POST /api/analyze-resume-file` | multipart `file` (PDF ≤5MB) + `target_role` | `multipart/form-data` |
+| `POST /api/company-research` | JSON `{company, role}` | `application/json` |
+| `POST /api/prep-coach` | JSON `{company, role, round}` | `application/json` |
 
-Field names map 1:1 to `api/schemas/*.py`. **Do not rename schema fields** — frontend teammate depends on them.
+`round` is the **free-form round name** from the drive's rounds timeline (e.g. `"Technical Round 2 (DSA & System Design)"`), NOT a fixed enum. The frontend passes the drive round name.
 
-Example (company-research):
+### Response `data` shapes — build EXACTLY these (LOCKED)
+
+**Resume Analyzer** (`ResumeReport`) — mirrors frontend `ResumeResult`:
+| field | type | notes |
+|---|---|---|
+| `score` | int | 0–100 overall ATS/role score |
+| `summary` | str | 1–2 sentence takeaway |
+| `sections` | `[{title, score, feedback, suggestions}]` | per-topic breakdown (e.g. ATS Compatibility, Impact & Metrics, Action Verbs & Writing, Role Alignment) |
+| `sections[].title` | str | section heading |
+| `sections[].score` | int | 0–100 for that section |
+| `sections[].feedback` | str | what's good / wrong |
+| `sections[].suggestions` | [str] | actionable fixes |
+| `topStrengths` | [str] | positive highlights |
+| `criticalFixes` | [str] | must-fix items |
+
+**Company Research** (`CompanyBrief`) — matches frontend `CompanyResult`:
+| field | type | notes |
+|---|---|---|
+| `companyName` | str | echo input, title-cased |
+| `role` | str | target role |
+| `overview` | str | company overview paragraph |
+| `techStack` | [str] | technologies |
+| `culture` | str | work culture/values |
+| `interviewProcess` | str | round structure |
+| `recentNews` | [str] | ~3 recent developments — model says "check [company]'s newsroom" if unsure, DO NOT invent |
+| `salaryRange` | str | if unknown: "Varies — check AmbitionBox / Glassdoor", DO NOT invent a number |
+| `tips` | [str] | prep tips |
+
+**Prep Coach** (`PrepPlan`) — matches frontend `PrepResult`:
+| field | type | notes |
+|---|---|---|
+| `company` | str | company name |
+| `title` | str | round title |
+| `description` | str | what the round involves |
+| `topics` | `[{name, priority, description}]` | study topics |
+| `topics[].name` | str | topic |
+| `topics[].priority` | str | "High" / "Medium" / "Low" |
+| `topics[].description` | str | what to cover |
+| `questionTypes` | [str] | question kinds |
+| `resources` | `[{name, url, description}]` | links |
+| `resources[].name` | str | resource name |
+| `resources[].url` | str | URL |
+| `resources[].description` | str | small note |
+| `proTips` | [str] | strategic tips |
+
+### Sample success responses (copy these shapes)
+
+`POST /api/company-research` →
 ```json
 {
   "success": true,
   "data": {
-    "company_overview": "...",
-    "tech_stack": ["Python", "Go", "Kubernetes"],
-    "domain_focus": "payments infrastructure",
-    "interview_pattern": "OA → technical → system design → HR"
+    "companyName": "Google",
+    "role": "Software Engineer",
+    "overview": "Google (Alphabet Inc.) is a multinational technology company...",
+    "techStack": ["Python", "Go", "TensorFlow", "Kubernetes", "GCP"],
+    "culture": "Engineering-driven culture with emphasis on innovation and data-driven decisions.",
+    "interviewProcess": "OA → Phone → 4 Onsite (Coding + System Design + Behavioral)",
+    "recentNews": ["...", "...", "..."],
+    "salaryRange": "Varies by role & location — check AmbitionBox / Glassdoor",
+    "tips": ["...", "..."]
   }
 }
 ```
+
+`POST /api/analyze-resume` →
+```json
+{
+  "success": true,
+  "data": {
+    "score": 72,
+    "summary": "Strong skills section and quantifiable impact, but missing role-aligned keywords.",
+    "sections": [
+      {
+        "title": "ATS Compatibility",
+        "score": 68,
+        "feedback": "Your resume contains a clearly labeled skills section that ATS systems can parse.",
+        "suggestions": [
+          "Use standard section headings (Experience, Education, Skills, Projects)",
+          "Include keywords from the job description verbatim"
+        ]
+      }
+    ],
+    "topStrengths": ["Educational background is clearly documented", "Project experience demonstrates hands-on skills"],
+    "criticalFixes": ["Add numbers and metrics to at least 3 bullet points", "Add a dedicated Technical Skills section"]
+  }
+}
+```
+
+`POST /api/prep-coach` →
+```json
+{
+  "success": true,
+  "data": {
+    "company": "Amazon",
+    "title": "Technical Round 2 (DSA & System Design)",
+    "description": "45-60 minute interview covering data structures, algorithms, and basic system design.",
+    "topics": [
+      {"name": "Arrays & Strings", "priority": "High", "description": "Two pointers, sliding window, prefix sums"},
+      {"name": "System Design Basics", "priority": "Medium", "description": "API design, database schema, caching"}
+    ],
+    "questionTypes": ["Live coding with explanation", "Design a URL shortener"],
+    "resources": [
+      {"name": "LeetCode", "url": "https://leetcode.com", "description": "Practice medium/hard problems"},
+      {"name": "System Design Primer", "url": "https://github.com/donnemartin/system-design-primer", "description": "Free system design guide"}
+    ],
+    "proTips": ["Think out loud — interviewers want to see your thought process", "Start with brute force, then optimize"]
+  }
+}
+```
+
+### Envelope (LOCKED — frontend expects one of these two shapes)
+
+```json
+{"success": true, "data": { ...the §5 shape above... }}
+{"success": false, "error": {"code": "LLM_FAILED", "message": "..."}}
+```
+
+| Situation | HTTP | `error.code` |
+|---|---|---|
+| Valid input, LLM returned valid JSON | 200 | — |
+| Malformed body / bad field types | 422 (automatic) | — |
+| LLM call failed (network/timeout) | 502 | `LLM_FAILED` |
+| LLM output not recoverable / fails Pydantic validation | 502 | `LLM_INVALID_RESPONSE` |
+| PDF unreadable / empty text | 422 | `EMPTY_DOCUMENT` |
+| Wrong file type / over 5MB | 422 | `INVALID_FILE_TYPE` / `FILE_TOO_LARGE` |
+
+Implemented by `ok()`/`fail()` in `api/envelope.py`. **The frontend reads `res.data`** — it does `setResult(data)` and then renders `result.score`, `result.techStack`, etc.
+
+**IMPORTANT (read before coding the `/api/prep-coach` route):** the frontend drives with `{company, role, round}` where `round` is a real round name. Keep that. Prep coach responds with `PrepPlan` (§5), NOT the old `{topic_checklist, likely_questions, round_strategy}` shape.
+
+---
 
 ## 6. Response envelope + status codes (LOCKED)
 
@@ -110,7 +234,7 @@ Every endpoint returns exactly one of:
 | LLM output not recoverable as JSON | 502 | `LLM_INVALID_RESPONSE` |
 | PDF unreadable / empty text | 422 | `EMPTY_DOCUMENT` |
 
-Implement `ok()`/`fail()` in `api/envelope.py` (Phase 1) and reuse everywhere. Frontend handles exactly these two shapes.
+`api/envelope.py` implements `ok()` / `fail()`. **Never return a third shape.**
 
 ## 7. Hard rules
 
@@ -118,8 +242,9 @@ Implement `ok()`/`fail()` in `api/envelope.py` (Phase 1) and reuse everywhere. F
 2. All LLM calls go through `core/llm_client.py` — never raw urllib/requests/httpx inside routers or services.
 3. System prompts live in `prompts/*.md`.
 4. Never trust raw model output — always `json_utils` → Pydantic validation → envelope.
-5. Let the LLM say "I don't know" in its output when info is missing. **No hardcoded fallbacks, no fake data** (the old `score: 85` placeholder is being deleted, not imitated).
+5. Let the LLM say "I don't know" in its output when info is missing. **No hardcoded fallbacks, no fake data** (the old `score: 85` placeholder is being deleted, not imitated). For factual fields (`salaryRange`, `recentNews`) the prompt MUST tell the model to say "varies — check AmbitionBox / Glassdoor" rather than invent a number.
 6. Every change gets a Changelog entry.
+7. **Response schemas match §5 exactly** — if you change a field name, update §5 + the schema + the prompt + tell the frontend teammate.
 
 ## 8. Running & verifying (commands)
 
@@ -139,22 +264,19 @@ PYTHONPATH= ./venv/Scripts/python.exe -m pytest tests/ -q
 
 Env: `.env` already contains `AI_API_KEY`, `AI_BASE_URL=https://opencode.ai/zen/v1`, `AI_MODEL_NAME=deepseek-v4-flash-free`.
 
+> ⚠️ **pytest is NOT yet installed** in `./venv` — Phase 3 must `pip install pytest` first.
+
 ---
 
 ## 9. Roadmap — Phase plan (execute in order)
 
 > Each phase = one commit + one Changelog line. "Verify" = the exact check that proves the phase is done. **Do not start a phase before its prerequisites are committed.**
 
-### Phase 0 — Foundation: make the server actually call the LLM
+### Phase 0 — Foundation: make the server actually call the LLM — ✅ DONE
 
-**Prerequisite:** none. **Files:** `config.py`, `core/llm_client.py`, `core/json_utils.py`.
+**Prerequisite:** none. **Files:** `config.py`, `core/llm_client.py`, `core/json_utils.py`. **Status: complete and verified — do not rework.**
 
-Steps:
-1. `config.py` — module-level settings object reading `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL_NAME`, plus `LLM_TIMEOUT=45`, `LLM_MAX_RETRIES=2` from env. Single source of truth.
-2. `core/llm_client.py` — port the working call from `test.py` (it already proves the endpoint works). Use **httpx** (already installed in venv) or the `openai` SDK — both OpenAI-compatible. Implement: timeout, 1 retry on transient failure, optional `response_format={"type": "json_object"}` if the provider supports it (test it; fall back to prompt-enforced JSON if not). Expose `chat(system_prompt, user_prompt) -> str` (raw content).
-3. `core/json_utils.py` — `extract_json(text) -> dict`: strip ```fences (with/without language tag), find first `{...}` block if prose wrapped it, `json.loads`, raise `JSONExtractionError` if unrecoverable.
-
-**Verify:**
+**Verify (re-run to confirm):**
 ```bash
 PYTHONPATH= ./venv/Scripts/python.exe -c "from core.json_utils import extract_json; print(extract_json('\"\`\`\`json\n{\\\"a\\\": 1}\n\"\`\`\`'))"
 # → {'a': 1}
@@ -162,63 +284,88 @@ PYTHONPATH= ./venv/Scripts/python.exe -c "from core.llm_client import chat; prin
 # → real model output, not an error
 ```
 
-**Locked:** httpx or openai SDK (either, don't add both). **Cut if rushed:** nothing here — everything depends on it. **Pitfalls:** the PYTHONPATH gotcha above; model may wrap JSON in fences — that's what json_utils is for.
-
 ---
 
-### Phase 1 — Resume Analyzer (text + PDF) — the demo star
+### Phase 1 — Resume Analyzer (text + PDF) — ROUTES DONE, **SCHEMA RE-ALIGN TO §5**
 
-**Prerequisite:** Phase 0 committed. **Files:** `api/envelope.py`, `services/resume_service.py`, `api/routers/resume.py`, `main.py`, `core/file_utils.py`, `requirements.txt`.
+**Prerequisite:** Phase 0 committed. **Files:** `api/envelope.py` ✅, `services/resume_service.py` ✅ (function `analyze_resume`), `api/routers/resume.py` ✅, `main.py` ✅, `core/file_utils.py` ✅, `requirements.txt` ✅.
+
+The routes/services already exist and work. **The only remaining work is re-aligning the response shape to §5** (the frontend contract). If the schema/prompt already match §5, this phase is done.
 
 Steps:
-1. `api/envelope.py` — `ok(data)` and `fail(code, message, http_status)` returning the envelopes from §6 (use `JSONResponse` for non-200).
-2. `services/resume_service.py` — `analyze(resume_text, target_role) -> ResumeReport`: load `prompts/resume.md` as system prompt, build user message, call `llm_client.chat`, `json_utils.extract_json`, validate with `ResumeReport`. Raise typed errors (`LLMError`) on failure.
-3. `api/routers/resume.py` — APIRouter with `POST /api/analyze-resume` (body `ResumeRequest`) → `ok(report)`; catch errors → `fail(...)`.
-4. `main.py` — **delete the hardcoded `score: 85` placeholder**; import + `include_router` for resume. Keep `/` health and CORS.
-5. PDF: `pip install pypdf python-multipart` (and add to `requirements.txt`). `core/file_utils.py` — `extract_pdf_text(data: bytes) -> str` via pypdf. New route `POST /api/analyze-resume-file`: `UploadFile` + `Form target_role`, enforce `.pdf` extension + 5MB cap, extract text; if empty → 422 `EMPTY_DOCUMENT` (scanned PDFs have no text — no OCR, by design).
-6. Envelope + error paths wired for both routes.
+1. `api/schemas/resume.py` — `ResumeReport` MUST be: `score: int` (0–100), `summary: str`, `sections: list[ResumeSection]` where `ResumeSection` = `{title: str, score: int, feedback: str, suggestions: list[str]}`, `topStrengths: list[str]`, `criticalFixes: list[str]`. Keep `ResumeRequest {resume_text, target_role}`.
+2. `prompts/resume.md` — instruct the model to emit **exactly** the §5 keys (`score`, `summary`, `sections[]`, `topStrengths`, `criticalFixes`) with a sample JSON block. `topStrengths` and `criticalFixes` are camelCase — the model must output those exact key names.
+3. Keep both routes (`/api/analyze-resume` + `/api/analyze-resume-file`). Router error → envelope mapping stays.
 
 **Verify:** server running → Swagger `/docs`:
-- `POST /api/analyze-resume` with `{"resume_text": "Built full stack React node app...", "target_role": "SDE"}` → `{"success": true, "data": {score, ...}}` with real LLM content (not 85).
+- `POST /api/analyze-resume` with `{"resume_text": "Built full stack React node app...", "target_role": "SDE"}` → `{"success": true, "data": {score, summary, sections, topStrengths, criticalFixes}}` with real LLM content (not 85).
 - `POST /api/analyze-resume-file` with a real PDF → same shape. With a blank/scanned PDF → 422 `EMPTY_DOCUMENT`.
 
-**Locked:** envelope shape, schema names, empty-doc → 422. **Your discretion:** sync vs async httpx, prompt wording tweaks in `prompts/resume.md`. **Cut if rushed:** steps 5–6 (text-only still demos). **Pitfalls:** `python-multipart` is required or UploadFile 500s; keep `analyze()` pure — parsing happens in the router/file_utils, not inside the service.
+**Locked:** envelope shape, schema names (§5), empty-doc → 422. **Your discretion:** sync vs async httpx, prompt wording tweaks in `prompts/resume.md`. **Cut if rushed:** file route. **Pitfalls:** `python-multipart` required or UploadFile 500s; keep `analyze_resume()` pure — parsing happens in the router/file_utils, not inside the service.
 
 ---
 
-### Phase 2 — Company Research + Prep Coach
+### Phase 2 — Company Research + Prep Coach — ROUTES DONE, **SCHEMA RE-ALIGN TO §5**
 
-**Prerequisite:** Phase 1 committed. **Files:** `services/company_service.py`, `services/coach_service.py`, `api/routers/company.py`, `api/routers/coach.py`, `main.py`.
+**Prerequisite:** Phase 1 committed. **Files:** `services/company_service.py` ✅ (`research_company`), `services/coach_service.py` ✅ (`generate_prep_plan`), `api/routers/company.py` ✅, `api/routers/coach.py` ✅, `main.py` ✅.
+
+The routes/services already exist and work. **Remaining work is re-aligning the response shapes to §5.**
 
 Steps:
-1. `services/company_service.py` — `research(company, role) -> CompanyBrief`; same pipeline as resume (prompt `prompts/company.md` → client → json_utils → validate).
-2. `services/coach_service.py` — `coach(company, role, round) -> PrepPlan`; prompt `prompts/coach.md`.
-3. `api/routers/company.py` + `api/routers/coach.py` — same pattern as resume router, envelope + error handling.
-4. `main.py` — mount both routers.
+1. `api/schemas/company.py` — `CompanyBrief` MUST be: `companyName: str`, `role: str`, `overview: str`, `techStack: list[str]`, `culture: str`, `interviewProcess: str`, `recentNews: list[str]`, `salaryRange: str`, `tips: list[str]`. Keep `CompanyRequest {company, role}`.
+2. `api/schemas/coach.py` — `PrepPlan` MUST be: `company: str`, `title: str`, `description: str`, `topics: list[PrepTopic]` (`{name, priority, description}`), `questionTypes: list[str]`, `resources: list[PrepResource]` (`{name, url, description}`), `proTips: list[str]`. Keep `CoachRequest {company, role, round}`.
+3. `prompts/company.md` — model emits exactly `companyName, role, overview, techStack, culture, interviewProcess, recentNews, salaryRange, tips` (sample JSON block in the prompt). Anti-fabrication: `recentNews`/`salaryRange` → "check ..." if unsure (rule §7.5).
+4. `prompts/coach.md` — model emits exactly `company, title, description, topics[{name,priority,description}], questionTypes, resources[{name,url,description}], proTips` (sample JSON block in the prompt).
 
 **Verify (Swagger):**
-- `POST /api/company-research` `{"company": "Google", "role": "SDE"}` → structured `CompanyBrief` JSON.
-- `POST /api/prep-coach` `{"company": "Amazon", "role": "SDE-1", "round": "Technical Round 2 (DSA & System Design)"}` → `PrepPlan` with lists, not prose blobs.
+- `POST /api/company-research` `{"company": "Google", "role": "SDE"}` → §5 `CompanyBrief` shape.
+- `POST /api/prep-coach` `{"company": "Amazon", "role": "SDE-1", "round": "Technical Round 2 (DSA & System Design)"}` → §5 `PrepPlan` with nested objects, not prose blobs.
 
-**Locked:** none new — copy Phase 1 pattern exactly. **Cut if rushed:** prep coach first if you must pick (frontend already has both buttons; both are ~30 min each). **Pitfalls:** the model occasionally returns prose instead of JSON for round — json_utils + validation catches it; if `likely_questions` comes back as a string, the Pydantic schema rejects it (good) — surface `LLM_INVALID_RESPONSE`, don't silently coerce.
+**Locked:** schema field names (§5), anti-fabrication. **Cut if rushed:** prep coach first if you must pick. **Pitfalls:** model occasionally returns prose instead of JSON — json_utils + validation catches it; if a list comes back as a string, Pydantic rejects it (good) — surface `LLM_INVALID_RESPONSE`, don't silently coerce.
 
 ---
 
-### Phase 3 — Robustness + tests (demo-proofing)
+### Phase 3 — Robustness + tests (demo-proofing) — INCOMPLETE
 
-**Prerequisite:** Phase 2 committed. **Files:** `tests/test_json_utils.py`, `tests/test_endpoints.py`, `.env.example`, `README.md`, `requirements.txt`.
+**Prerequisite:** Phase 2 committed. **Files:** `tests/test_json_utils.py`, `tests/test_endpoints.py` (currently empty TODO files), `.env.example`, `README.md`, `requirements.txt`.
 
 Steps:
-1. Status codes per §6 everywhere (FastAPI gives 422 automatically; map `LLMError` → 502 `LLM_FAILED`, `JSONExtractionError` → 502 `LLM_INVALID_RESPONSE`).
-2. Logging — one line per call: endpoint, http status, latency_ms, model. (stdlib `logging` is fine; no new deps.)
-3. `tests/test_json_utils.py` — real unit tests: fence stripping, prose-wrapped JSON, trailing-comma repair, garbage input → raises.
-4. `tests/test_endpoints.py` — FastAPI `TestClient`; monkeypatch `llm_client.chat` to return fixed JSON; assert envelope + schema; assert 422 on bad body; assert 502 on client raise.
-5. Fix stale files: `.env.example` → `AI_API_KEY=...` (not Anthropic); `requirements.txt` → add httpx, pypdf, python-multipart; **remove anthropic**; `README.md` → match reality (opencode zen, not Anthropic).
-6. Delete or archive `test.py` (its job is now `tests/`).
+1. `pip install pytest` into `./venv`.
+2. `tests/test_json_utils.py` — real unit tests: fence stripping, prose-wrapped JSON, trailing-comma repair, garbage input → raises `JSONExtractionError`.
+3. `tests/test_endpoints.py` — FastAPI `TestClient`; monkeypatch `core.llm_client.chat` to return fixed §5-shaped JSON; assert `{success, data}` envelope + §5 schema; assert 422 on bad body; assert 502 envelope on client raise.
+4. Logging — one line per call: endpoint, http status, latency_ms, model. (stdlib `logging`; only `llm_client` logs today.)
+5. Fix stale files: `.env.example` → `AI_API_KEY=...` (not Anthropic); `requirements.txt` → already clean (httpx, pypdf, python-multipart; no anthropic) — double-check; `README.md` → match reality (opencode zen, not Anthropic).
+6. Delete or archive `test.py` (its job is now `tests/`). Keep `tests/test_endpoints_live.py` as an optional manual real-LLM check.
+7. **PRE-FRONTEND FIXES (MUST be done + verified before connecting to the frontend — Phase 4 gate).** Three latent bugs found in review:
+   - **`tests/test_endpoints_live.py` reads OLD field names** → will crash with `KeyError` against the §5 schemas. Lines 48 & 64 must be:
+     ```python
+     # line 48 (was data_company["data"]["tech_stack"])
+     len(data_company["data"]["techStack"]),
+     # line 64 (was data_coach["data"]["topic_checklist"])
+     len(data_coach["data"]["topics"]),
+     ```
+   - **`services/*_service.py` fallback prompts (lines ~15-18) still describe the OLD contract** — used only when `prompts/*.md` is missing, but then the LLM emits old-shape JSON → 502. Must be replaced with §5 keys:
+     ```python
+     # resume_service.py fallback →
+     "score (0-100), summary (str), sections (list of {title, score, feedback, suggestions}), topStrengths (list), criticalFixes (list)."
+     # company_service.py fallback →
+     "companyName, role, overview, techStack (list), culture, interviewProcess, recentNews (list), salaryRange, tips (list)."
+     # coach_service.py fallback →
+     "company, title, description, topics (list of {name, priority, description}), questionTypes (list), resources (list of {name, url, description}), proTips (list)."
+     ```
+   - **`core/llm_client.py` retry tuple ends with bare `Exception` (line 78)** → the `LLMError("Unexpected response format...")` raised at line 72 gets caught as transient, retried pointlessly, and its specific message is lost. Narrow the tuple to:
+     ```python
+     except (
+         httpx.TimeoutException,
+         httpx.NetworkError,
+         httpx.HTTPStatusError,
+     ) as exc:
+     ```
+   - Optional (recommended): `main.py` log line hardcodes the model name — use `AI_MODEL_NAME` from `config.py` instead; add `pytest>=8.0.0` to `requirements.txt` so a fresh `run.bat` venv can still run tests.
 
-**Verify:** `PYTHONPATH= ./venv/Scripts/python.exe -m pytest tests/ -q` → all pass. Kill network / point client at a dead URL → endpoint returns clean 502 envelope, no traceback.
+**Verify:** `PYTHONPATH= ./venv/Scripts/python.exe -m pytest tests/ -q` → all pass. Kill network / point client at a dead URL → endpoint returns clean 502 envelope, no traceback. Then run `PYTHONPATH= ./venv/Scripts/python.exe tests/test_endpoints_live.py` against the real API → prints `[SUCCESS] ALL FASTAPI ENDPOINTS ARE FULLY FUNCTIONAL!` with the NEW field names (techStack/topics), no KeyError.
 
-**Locked:** status-code mapping, no OCR, no new heavy deps. **Cut if rushed:** tests (step 3–4) are the most skippable — but json_utils tests are cheap insurance for demo day.
+**Locked:** status-code mapping, no OCR, no new heavy deps. **Cut if rushed:** tests (step 2–3) are the most skippable — but json_utils tests are cheap insurance for demo day.
 
 ---
 
@@ -227,25 +374,24 @@ Steps:
 **Prerequisite:** Phase 2 or 3 committed. **Deliverable:** `FRONTEND_CONTRACT.md` (new file at `agent/` root).
 
 Steps:
-1. Write `FRONTEND_CONTRACT.md` — for the frontend teammate: each endpoint → which page/button → exact payload → how to render (score ring, chips for lists, accordion for briefs) → sample JSON → error handling (show `error.message` with retry). Base it on §5 + §6 of this file.
-2. Teammate wires: the two `alert()` stubs in `app/web/src/app/(dashboard)/drives/[id]/page.tsx` (lines ~81–89) → real fetches; onboarding resume upload → `POST /api/analyze-resume-file` (FormData). **Frontend changes are theirs** — you only supply the contract + running server.
+1. Write `FRONTEND_CONTRACT.md` — for the frontend teammate: each endpoint → which page/button → exact payload → how to render (score ring, chips for lists, accordion for briefs) → sample JSON (§5 shapes) → error handling (show `error.message` with retry). Base it on §5 + §6 of this file.
+2. Teammate wires: the two `router.push("/ai-assistant")` buttons in `app/web/src/app/(dashboard)/drives/[id]/page.tsx` (lines ~84–90) → pass `company, role, round` via router query so the AI page pre-fills; onboarding resume upload → `POST /api/analyze-resume-file` (FormData). **Frontend changes are theirs** — you only supply the contract + running server.
 3. Demo rehearsal checklist: onboard → resume scored → drive detail → company brief → apply → applications → prep coach for next round.
 
 **Verify:** full journey works in browser against `http://127.0.0.1:8000` (frontend dev server on :3000).
 
-**Locked:** contract field names. **Cut if rushed:** rehearsal (step 3) — but at least click the 3 AI buttons once.
+**Locked:** contract field names (§5). **Cut if rushed:** rehearsal (step 3) — but at least click the 3 AI buttons once.
 
 ---
 
 ## 10. Current status
 
-- [x] Scaffold: `api/` `core/` `services/` `prompts/` `tests/` + this doc
-- [x] Schemas (`api/schemas/*.py`) — contract defined
-- [x] Prompts drafted (`prompts/*.md`)
 - [x] Phase 0: config.py, llm_client.py, json_utils.py (Foundation verified)
-- [x] Phase 1: envelope, resume service+router, main.py wiring, PDF endpoint (`pypdf` + `python-multipart`)
-- [x] Phase 2: company + coach services/routers (`services/company_service.py`, `services/coach_service.py`, `api/routers/company.py`, `api/routers/coach.py`)
-- [ ] Phase 3: tests, status codes, logging, stale-file cleanup
+- [x] Phase 1: envelope, resume service+router, main.py wiring, PDF endpoint (`pypdf` + `python-multipart`) — **schema aligned (Complete)**
+- [x] Phase 2: company + coach services/routers — **schema aligned (Complete)**
+- [x] **Schema + prompts re-aligned to §5 (frontend contract)** — resume/company/coach response shapes
+- [x] Phase 3: tests, logging, stale-file cleanup (README/.env.example/test.py), pytest installed
+- [x] **Pre-frontend fixes (Phase 3 step 7):** live-test keys (`techStack`/`topics`), service fallback prompts → §5, `llm_client.py` except-tuple narrow — MUST be done before Phase 4
 - [ ] Phase 4: FRONTEND_CONTRACT.md + demo rehearsal
 
 ## Changelog
@@ -256,3 +402,8 @@ Steps:
 | 2026-08-04 | Added §9 Roadmap (Phases 0–4) with per-phase steps, verification, locked decisions, pitfalls. Envelope/status-code spec (§6). | Mitra |
 | 2026-08-04 | Implemented Phase 0 Foundation: `config.py`, `core/llm_client.py` (httpx with retry & timeout), `core/json_utils.py` (fence stripping & repair). Verified live LLM response. | Antigravity |
 | 2026-08-04 | Implemented Phase 1 & Phase 2: `api/envelope.py`, `core/file_utils.py` (PDF extraction), `services/*`, `api/routers/*` (Resume, Company, Prep Coach), mounted in `main.py`. | Antigravity |
+| 2026-08-04 | Aligned §5 contract to the frontend `/ai-assistant` shapes (rich `ResumeReport`/`CompanyBrief`/`PrepPlan`). Marked schemas + prompts for re-alignment to §5. | Mitra |
+| 2026-08-04 | Verified Phase 1 (Resume Analyzer). Schemas and prompts already align with §5 perfectly. Marked Phase 1 as officially complete. | Antigravity |
+| 2026-08-04 | Verified Phase 2 (Company Research, Prep Coach). Updated `CompanyBrief` and `PrepPlan` schemas and prompts to exactly match §5 (camelCase fields, structured topics). Marked Phase 2 as officially complete. | Antigravity |
+| 2026-08-04 | Implemented Phase 3 (Robustness & Tests). Added pytest unit tests and endpoint tests. Added HTTP request logging to `main.py`. Cleaned up `test.py`, `.env.example`, and `README.md` to reflect DeepSeek usage. | Antigravity |
+| 2026-08-04 | Added Phase 3 step 7 PRE-FRONTEND FIXES (Phase 4 gate): live-test `techStack`/`topics` key fix, §5 fallback prompts in services, `llm_client.py` except-tuple narrowing — from full codebase review pass. | Mitra |
