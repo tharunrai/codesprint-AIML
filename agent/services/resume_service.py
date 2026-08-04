@@ -14,7 +14,7 @@ def _get_system_prompt() -> str:
         return PROMPT_FILE.read_text(encoding="utf-8")
     return (
         "You are an expert ATS resume reviewer. Output ONLY valid JSON with keys: "
-        "score (0-100), formatting_issues (list), missing_skills (list), improved_bullets (list)."
+        "score (0-100), summary (str), sections (list of {title, score, feedback, suggestions}), topStrengths (list), criticalFixes (list)."
     )
 
 
