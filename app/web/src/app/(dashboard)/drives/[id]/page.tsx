@@ -82,11 +82,11 @@ export default function DriveDetailPage() {
   }
 
   function handleAIPrepCoach() {
-    router.push("/ai-assistant");
+    router.push(`/ai-assistant?company=${encodeURIComponent(drive.companyName)}&role=${encodeURIComponent(drive.role)}&round=${encodeURIComponent(drive.rounds?.[0]?.name ?? "Technical Interview")}`);
   }
 
   function handleCompanyResearch() {
-    router.push("/ai-assistant");
+    router.push(`/ai-assistant?company=${encodeURIComponent(drive.companyName)}&role=${encodeURIComponent(drive.role)}`);
   }
 
   return (

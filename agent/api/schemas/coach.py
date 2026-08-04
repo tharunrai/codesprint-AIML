@@ -8,8 +8,21 @@ class CoachRequest(BaseModel):
     role: str
     round: str
 
+class PrepTopic(BaseModel):
+    name: str
+    priority: str
+    description: str
+
+class PrepResource(BaseModel):
+    name: str
+    url: str
+    description: str
 
 class PrepPlan(BaseModel):
-    topic_checklist: list[str]
-    likely_questions: list[str]
-    round_strategy: str
+    company: str
+    title: str
+    description: str
+    topics: list[PrepTopic]
+    questionTypes: list[str]
+    resources: list[PrepResource]
+    proTips: list[str]

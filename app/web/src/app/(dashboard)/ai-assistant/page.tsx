@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
@@ -61,37 +62,65 @@ interface PrepResult {
 
 export default function AIAssistantPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  
+  const initialCompany = searchParams.get("company") || "";
+  const initialRole = searchParams.get("role") || "";
+  const initialRound = searchParams.get("round") || "";
+
   const [activeTab, setActiveTab] = useState<Tab>("resume");
 
   // Resume Analyzer State
   const [resumeText, setResumeText] = useState("");
-  const [targetRole, setTargetRole] = useState("Software Engineer");
+  const [targetRole, setTargetRole] = useState(initialRole || "Software Engineer");
   const [resumeResult, setResumeResult] = useState<ResumeResult | null>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
 
   // Company Research State
-  const [companyName, setCompanyName] = useState("");
-  const [companyRole, setCompanyRole] = useState("");
+  const [companyName, setCompanyName] = useState(initialCompany);
+  const [companyRole, setCompanyRole] = useState(initialRole);
   const [companyResult, setCompanyResult] = useState<CompanyResult | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
 
   // Prep Coach State
-  const [roundType, setRoundType] = useState("oa");
-  const [prepCompany, setPrepCompany] = useState("");
+  const [roundType, setRoundType] = useState("technical");
+  const [prepCompany, setPrepCompany] = useState(initialCompany);
   const [prepResult, setPrepResult] = useState<PrepResult | null>(null);
   const [prepLoading, setPrepLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialCompany && initialRound) {
+      setActiveTab("coach");
+      // Basic reverse mapping for round
+      if (initialRound.toLowerCase().includes("hr") || initialRound.toLowerCase().includes("behavioral")) {
+        setRoundType("hr");
+      } else if (initialRound.toLowerCase().includes("system design")) {
+        setRoundType("system-design");
+      } else if (initialRound.toLowerCase().includes("assessment") || initialRound.toLowerCase().includes("oa")) {
+        setRoundType("oa");
+      } else {
+        setRoundType("technical");
+      }
+    } else if (initialCompany) {
+      setActiveTab("research");
+    }
+  }, [initialCompany, initialRound]);
 
   const handleResumeAnalyze = async () => {
     if (!resumeText.trim()) return;
     setResumeLoading(true);
     try {
-      const res = await fetch("/api/ai", {
+      const res = await fetch("http://127.0.0.1:8000/api/analyze-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "resume-analyze", resumeText, targetRole }),
+        body: JSON.stringify({ resume_text: resumeText, target_role: targetRole }),
       });
-      const data = await res.json();
-      setResumeResult(data);
+      const body = await res.json();
+      if (!body.success) {
+        console.error(body.error?.message);
+        return;
+      }
+      setResumeResult(body.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -103,13 +132,17 @@ export default function AIAssistantPage() {
     if (!companyName.trim()) return;
     setCompanyLoading(true);
     try {
-      const res = await fetch("/api/ai", {
+      const res = await fetch("http://127.0.0.1:8000/api/company-research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "company-research", companyName, role: companyRole }),
+        body: JSON.stringify({ company: companyName, role: companyRole || targetRole }),
       });
-      const data = await res.json();
-      setCompanyResult(data);
+      const body = await res.json();
+      if (!body.success) {
+        console.error(body.error?.message);
+        return;
+      }
+      setCompanyResult(body.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -120,13 +153,25 @@ export default function AIAssistantPage() {
   const handlePrepCoach = async () => {
     setPrepLoading(true);
     try {
-      const res = await fetch("/api/ai", {
+      const roundMap: Record<string, string> = {
+        "oa": "Online Assessment (OA)",
+        "technical": "Technical Interview",
+        "hr": "HR / Behavioral Interview",
+        "system-design": "System Design Interview"
+      };
+      const roundName = roundMap[roundType] || "Technical Interview";
+
+      const res = await fetch("http://127.0.0.1:8000/api/prep-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "prep-coach", roundType, company: prepCompany }),
+        body: JSON.stringify({ company: prepCompany, role: companyRole || targetRole, round: roundName }),
       });
-      const data = await res.json();
-      setPrepResult(data);
+      const body = await res.json();
+      if (!body.success) {
+        console.error(body.error?.message);
+        return;
+      }
+      setPrepResult(body.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -134,16 +179,46 @@ export default function AIAssistantPage() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      setResumeText(text || "");
-    };
-    reader.readAsText(file);
-    e.target.value = "";
+    
+    // Set file text if it's a txt file for the textarea
+    if (file.name.endsWith('.txt')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        setResumeText(text || "");
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+      return;
+    }
+
+    // For PDF files, use the upload endpoint
+    if (file.name.endsWith('.pdf')) {
+      setResumeLoading(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("target_role", targetRole);
+        const res = await fetch("http://127.0.0.1:8000/api/analyze-resume-file", { 
+          method: "POST", 
+          body: fd 
+        });
+        const body = await res.json();
+        if (!body.success) {
+          console.error(body.error?.message);
+          return;
+        }
+        setResumeResult(body.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setResumeLoading(false);
+        e.target.value = "";
+      }
+    }
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -251,12 +326,12 @@ export default function AIAssistantPage() {
               <div className="relative border-2 border-dashed border-border hover:border-primary/50 transition-colors rounded-xl p-4 text-center cursor-pointer">
                 <input
                   type="file"
-                  accept=".txt,.doc,.docx"
+                  accept=".txt,.doc,.docx,.pdf"
                   onChange={handleFileUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
                 <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-                <span className="text-xs font-semibold text-foreground">Upload Resume (.txt)</span>
+                <span className="text-xs font-semibold text-foreground">Upload Resume (.txt, .pdf)</span>
               </div>
 
               <Button

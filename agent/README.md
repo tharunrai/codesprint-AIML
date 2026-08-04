@@ -1,6 +1,6 @@
 # AI Agent Backend
 
-This folder contains the AI Agent backend for the Placement Portal, built with Python and FastAPI. It integrates with Anthropic's SDK to handle resume parsing, company research, and interview prep.
+This folder contains the AI Agent backend for the Placement Portal, built with Python and FastAPI. It integrates with the DeepSeek model (`deepseek-v4-flash-free`) via the **opencode zen** API to handle resume parsing, company research, and interview prep.
 
 ## How to Run (For Team Members)
 
@@ -21,10 +21,12 @@ Once the server is running, you can view the interactive API documentation (Swag
 
 ## Environment Variables
 
-Make sure to add your actual Anthropic API key to the `.env` file once it is generated.
+Make sure to add your actual AI API key to the `.env` file once it is generated.
 
 ```env
-ANTHROPIC_API_KEY=your_real_key_here
+AI_API_KEY=your_real_key_here
+AI_BASE_URL=https://opencode.ai/zen/v1
+AI_MODEL_NAME=deepseek-v4-flash-free
 ```
 
 ## Adding New Dependencies

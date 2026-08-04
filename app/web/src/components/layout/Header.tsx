@@ -110,7 +110,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="text-xs font-bold text-primary">
-                  {user.fullName
+                  {(user.fullName || "User")
                     .split(" ")
                     .map((w: string) => w[0])
                     .join("")
@@ -119,7 +119,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
               </div>
               <div className="hidden sm:block text-left">
                 <span className="text-sm font-medium text-foreground block leading-tight">
-                  {user.fullName.split(" ")[0]}
+                  {(user.fullName || "User").split(" ")[0]}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase font-semibold">
                   {user.role}

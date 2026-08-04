@@ -16,6 +16,11 @@ export default function DrivesPage() {
   const { user } = useAuth();
   const [drives, setDrives] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [eligibleOnly, setEligibleOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("deadline");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
