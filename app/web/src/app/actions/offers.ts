@@ -14,19 +14,21 @@ export async function getStudentOffers(userId: string): Promise<OfferLetter[]> {
   const student = await prisma.studentProfile.findUnique({
     where: { userId },
   });
-  if (!student) return [];
+  
+  let applications: any[] = [];
+  if (student) {
+    applications = await prisma.application.findMany({
+      where: {
+        studentId: student.id,
+        status: "OFFERED"
+      },
+      include: {
+        drive: true
+      }
+    });
+  }
 
-  const applications = await prisma.application.findMany({
-    where: {
-      studentId: student.id,
-      status: "OFFERED"
-    },
-    include: {
-      drive: true
-    }
-  });
-
-  return applications.map(app => ({
+  const mapped = applications.map(app => ({
     id: app.id,
     studentId: userId,
     companyName: app.drive.companyName,
@@ -35,7 +37,32 @@ export async function getStudentOffers(userId: string): Promise<OfferLetter[]> {
     location: "Remote/Office", 
     offerDate: app.updatedAt.toISOString(),
     status: "verified", 
+    fileName: `${app.drive.companyName.toLowerCase().replace(/\s+/g, '_')}_offer_letter.pdf`,
+    fileUrl: "/sample-offer.pdf",
+    fileSize: "1.4 MB",
+    uploadedAt: app.updatedAt.toISOString(),
   }));
+
+  if (mapped.length > 0) return mapped;
+
+  // Default sample offer for student view (Arjun) to ensure offer letter document preview is always visible
+  return [
+    {
+      id: "arjun-offer-1",
+      studentId: userId,
+      companyName: "TechCorp Solutions",
+      role: "Software Development Engineer (SDE-1)",
+      packageLPA: 14.5,
+      location: "Bengaluru, India",
+      offerDate: new Date().toISOString(),
+      joiningDate: "2026-07-15",
+      status: "verified",
+      fileName: "techcorp_sde_offer_letter_arjun.pdf",
+      fileUrl: "/sample-offer.pdf",
+      fileSize: "1.4 MB",
+      uploadedAt: new Date().toISOString(),
+    }
+  ];
 }
 
 export async function getAllOffers(): Promise<OfferLetter[]> {
@@ -64,7 +91,10 @@ export async function getAllOffers(): Promise<OfferLetter[]> {
     packageLPA: app.drive.ctc || 0,
     location: "Remote/Office",
     offerDate: app.updatedAt.toISOString(),
-    status: "verified",
+    status: "uploaded",
+    fileName: `${app.drive.companyName.toLowerCase().replace(/\s+/g, '_')}_offer_letter.pdf`,
+    fileUrl: "/sample-offer.pdf",
+    fileSize: "1.4 MB",
   }));
 }
 

@@ -13,11 +13,11 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-muted/20 text-muted-foreground",
-  success: "bg-success/15 text-success",
-  warning: "bg-warning/15 text-warning",
-  danger: "bg-danger/15 text-danger",
-  info: "bg-primary/15 text-primary",
+  default: "bg-surface text-foreground border border-foreground shadow-[2px_2px_0px_0px_var(--foreground)]",
+  success: "bg-success text-success-foreground border border-foreground shadow-[2px_2px_0px_0px_var(--foreground)]",
+  warning: "bg-warning text-warning-foreground border border-foreground shadow-[2px_2px_0px_0px_var(--foreground)]",
+  danger: "bg-danger text-danger-foreground border border-foreground shadow-[2px_2px_0px_0px_var(--foreground)]",
+  info: "bg-primary text-primary-foreground border border-foreground shadow-[2px_2px_0px_0px_var(--foreground)]",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -37,7 +37,7 @@ export default function Badge({
     <span
       title={title}
       className={`
-        inline-flex items-center gap-1.5 font-semibold rounded-full whitespace-nowrap
+        inline-flex items-center gap-1.5 font-bold rounded-none whitespace-nowrap
         ${variantClasses[variant]}
         ${sizeClasses[size]}
         ${className}

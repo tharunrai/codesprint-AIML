@@ -221,21 +221,21 @@ export default function ApplicationsPage() {
 
 function RoundPill({ round }: { round: RoundResult }) {
   const styles = {
-    passed: "bg-gradient-to-r from-success/20 to-success/10 text-success border-success/30 shadow-sm",
-    failed: "bg-gradient-to-r from-danger/20 to-danger/10 text-danger border-danger/30 shadow-sm",
-    pending: "bg-gradient-to-r from-warning/20 to-warning/10 text-warning border-warning/30 animate-pulse shadow-sm",
-    upcoming: "bg-surface-hover text-muted border-border",
+    passed: "bg-success/20 text-black border-2 border-foreground font-bold shadow-[2px_2px_0px_0px_var(--foreground)]",
+    failed: "bg-danger/20 text-black border-2 border-foreground font-bold shadow-[2px_2px_0px_0px_var(--foreground)]",
+    pending: "bg-warning/20 text-black border-2 border-foreground font-bold animate-pulse shadow-[2px_2px_0px_0px_var(--foreground)]",
+    upcoming: "bg-surface text-black border-2 border-foreground font-bold shadow-[2px_2px_0px_0px_var(--foreground)]",
   };
 
   return (
     <div
       className={`
-        px-3 py-1.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shrink-0
+        px-3 py-1.5 rounded-none text-[11px] font-bold whitespace-nowrap shrink-0
         ${styles[round.status]}
       `}
     >
-      {round.roundName.length > 16
-        ? round.roundName.slice(0, 14) + "…"
+      {round.roundName.length > 18
+        ? round.roundName.slice(0, 16) + "…"
         : round.roundName}
     </div>
   );

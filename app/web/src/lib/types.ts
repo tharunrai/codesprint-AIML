@@ -72,6 +72,7 @@ export interface OfferLetter {
   joiningDate?: string;
   status: OfferStatus;
   fileName?: string;
+  fileUrl?: string;
   fileSize?: string;
   uploadedAt?: string;
   remarks?: string;

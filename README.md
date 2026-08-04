@@ -1,44 +1,69 @@
 # PlaceMe CredChain 🎓🔗
 
-PlaceMe CredChain is a modern, blockchain-anchored academic placement portal designed to bridge the gap between students, faculty, and recruiters. It offers a secure, verifiable, and AI-powered platform for managing campus recruitment drives, student applications, and credential verification.
-
-## 🌟 Key Features
-
-### For Students
-- **Live Dashboard**: Track active drives, applications, upcoming interviews, and received offers.
-- **AI Placement Assistant**: Get AI-powered resume analysis, company research, and round-specific coaching.
-- **Secure Credential Vault**: Upload resumes, marksheets, and certificates.
-- **Master Bundle QR**: Generate a single QR code representing your entire verified academic portfolio.
-
-### For Faculty / TPC (Training & Placement Cell)
-- **Recruitment Analytics**: Manage drives, monitor student applications, and oversee placement metrics.
-- **Document Verification**: Scan student Master QR codes to instantly verify their academic credentials.
-- **Blockchain Attestation**: Approved documents are anchored on a local blockchain (Hardhat) to ensure immutability and prevent credential fraud.
+**PlaceMe CredChain** is an enterprise-grade, blockchain-anchored Smart Placement & Career Tracking Portal designed for educational institutions. It bridges students, faculty placement cells (TPC), and corporate recruiters onto a unified, AI-enhanced platform for campus recruitment drives, credential attestation, and placement verification.
 
 ---
 
-## 🛠️ Technology Stack
+## 🌟 Feature Highlights
 
-- **Frontend & API**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons.
-- **Database**: PostgreSQL (via Prisma ORM).
-- **Authentication**: Supabase Auth.
-- **Blockchain**: Hardhat (Local Ethereum node), Ethers.js.
-- **Tools**: HTML5-QRCode (for in-browser scanning), CryptoJS.
+### 👨‍🎓 For Students
+- **Interactive Placement Dashboard**: Track ongoing drives, application stages, schedule of rounds, and received offers in real time.
+- **Secure Credential Vault**: Upload resumes, marksheets, and certificates with SHA-256 integrity hashing and local preview capabilities.
+- **Unified Master QR Code**: Generate a single, scannable Master QR code that bundles all verified academic credentials into a verifiable public bundle.
+- **Offer Management**: Upload company offer letters for placement cell verification and record accepted/declined responses.
+
+### 👩‍🏫 For Faculty & TPC (Training & Placement Cell)
+- **Live PDF Document Viewer**: Review student-submitted credentials and offer letters with built-in inline PDF document inspection before approving or rejecting.
+- **Document & Offer Verification Queue**: Add faculty remarks, attest document authenticity, and trigger on-chain anchoring.
+- **Blockchain Credential Anchoring (Hardhat / Ethereum)**: Anchors document hashes onto local smart contracts (`CredentialRegistry.sol`) to ensure tamper-proof authenticity.
+- **Recruitment & Drive Management**: Create, edit, and track company recruitment drives, eligibility rules, and multi-stage interview rounds.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+- **Web Framework**: [Next.js 16 (App Router)](https://nextjs.org/) & React 19
+- **Styling**: Tailwind CSS v4, Lucide Icons, Glassmorphism UI
+- **Database & ORM**: PostgreSQL via [Prisma ORM](https://www.prisma.io/)
+- **Authentication & Storage**: [Supabase Auth](https://supabase.com/) & Supabase Storage
+- **Blockchain Integration**: Hardhat (Local Ethereum Node), Ethers.js v6
+- **QR Verification**: HTML5-QRCode Scanner & CryptoJS
+
+---
+
+## 📁 Repository Structure
+
+```
+codesprint-AIML/
+├── agent/                # Background services & runner scripts
+├── app/
+│   └── web/              # Next.js 16 Full-Stack Application
+│       ├── public/       # Public assets, logos, and sample PDF templates
+│       ├── prisma/       # Database schema definition
+│       ├── src/
+│       │   ├── app/      # App Router (Dashboard, Faculty, Auth, Verify)
+│       │   ├── components/ # Reusable UI components & layout elements
+│       │   ├── context/  # React Context (AuthContext & PlacementContext)
+│       │   └── lib/      # Utility helpers & type definitions
+├── contracts/            # Hardhat smart contracts & deployment scripts
+│   ├── contracts/        # Solidity smart contracts (CredentialRegistry.sol)
+│   └── scripts/          # Contract deployment & test scripts
+├── README.md             # Project documentation
+└── start.bat             # One-click startup batch script
+```
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-Make sure you have the following installed:
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
-- A [Supabase](https://supabase.com/) project (for Auth and Storage)
-- PostgreSQL database (can use Supabase's provided Postgres)
+### 1. Prerequisites
+- **Node.js**: v18.x or higher
+- **npm**: v9.x or higher
+- **PostgreSQL Database** or Supabase Postgres connection string
 
-### 1. Environment Setup
+### 2. Environment Configuration
 
-Create a `.env.local` file in `app/web/.env.local` and add your keys:
+Create `.env.local` inside `app/web/.env.local`:
 
 ```env
 # Supabase Configuration
@@ -46,66 +71,60 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# PostgreSQL Connection String (Transaction pooled)
+# PostgreSQL Connection String
 DATABASE_URL=your_postgres_connection_string
 ```
 
-### 2. Database Setup & Seeding
+### 3. Database Migration & Seeding
 
-Navigate to the web app directory and push the Prisma schema to your database:
+Navigate to `app/web` and set up the schema:
 
 ```bash
 cd app/web
+
+# Push schema to database
 npx prisma db push
-```
 
-Next, seed the database with mock users, drives, applications, and credentials:
-
-```bash
-# 1. Seed Supabase Auth users
+# Seed database with initial users and drives
 node scripts/seed-users.mjs
-
-# 2. Seed Prisma Database (Drives, Applications, Credentials)
 npx tsx scripts/seed-db.ts
 ```
 
-*Note: The mock users created are `arjun.mehta@college.edu` (Student) and `priya.sharma@college.edu` (Faculty). The password for both is `password123`.*
+*Default Demo Logins (Password for both: `password123`):*
+- **Student Profile**: `arjun.mehta@college.edu`
+- **Faculty Profile**: `priya.sharma@college.edu`
 
-### 3. Running the Application (Windows)
+### 4. Running the Application
 
-We have provided a unified start script that will spin up the local blockchain node, deploy the smart contracts, and start the Next.js development server simultaneously.
-
-From the root directory, simply run:
+From the root directory, launch the entire monorepo using the provided script:
 
 ```bash
 start.bat
 ```
 
-Alternatively, if you want to run them manually:
+Or start components individually:
 
-**Terminal 1 (Blockchain):**
-```bash
-cd contracts
-npm run node
-# In a separate window inside contracts: npx hardhat run scripts/deploy.js --network localhost
-```
+1. **Local Blockchain Node (Terminal 1)**:
+   ```bash
+   cd contracts
+   npm run node
+   ```
+2. **Next.js Web App (Terminal 2)**:
+   ```bash
+   cd app/web
+   npm run dev
+   ```
 
-**Terminal 2 (Next.js App):**
-```bash
-cd app/web
-npm run dev
-```
-
-The application will be available at [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📱 Usage Guide
+## 📄 Verification & PDF Viewing Flow
 
-1. **Login**: Access the portal at `http://localhost:3000`. Log in as a student (`arjun.mehta@college.edu`) or faculty (`priya.sharma@college.edu`).
-2. **Upload Credentials (Student)**: Go to the Documents tab and upload your certificates. Generate your Master QR Code.
-3. **Verify Credentials (Faculty)**: Go to the Document Verification tab. Click **"Scan QR"** to scan a student's Master QR Code. The portal will automatically filter and verify the integrity of the student's entire portfolio.
-4. **Apply for Drives**: Students can view open campus drives and submit their applications.
+1. **Student Upload**: Students upload academic documents or offer letters in the Documents / Credentials panel.
+2. **Faculty Verification Queue**: Faculty logs in and navigates to **Document Verification** (`/faculty/documents`) or **Offer Letters** (`/faculty/offers`).
+3. **Live PDF Inspection**: Clicking **"Preview"** loads the student's uploaded PDF file directly inside an embedded PDF viewer player.
+4. **Attestation & Blockchain Anchoring**: Faculty writes verification remarks and approves the credential, updating its status to `VERIFIED` and anchoring its hash on-chain.
 
 ---
 

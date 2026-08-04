@@ -42,14 +42,15 @@ export default function Sidebar() {
       className={`
         fixed top-0 left-0 h-screen z-40
         bg-sidebar-bg text-sidebar-fg
+        border-r-2 border-foreground
         flex flex-col
         transition-all duration-300 ease-out
         ${collapsed ? "w-[68px]" : "w-64"}
       `}
     >
       {/* Brand */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10 shrink-0">
-        <PlaceMeLogoIcon className="w-8 h-8 shrink-0" />
+      <div className="flex items-center gap-3 px-4 h-16 border-b-2 border-foreground shrink-0">
+        <PlaceMeLogoIcon className="w-8 h-8 shrink-0 border border-foreground rounded" />
         {!collapsed && (
           <span className="font-bold text-lg tracking-tight whitespace-nowrap">
             PlaceMe

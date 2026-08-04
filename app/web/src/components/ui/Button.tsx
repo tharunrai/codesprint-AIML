@@ -14,19 +14,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm shadow-primary/20",
+    "bg-primary text-primary-foreground border-2 border-foreground shadow-[2px_2px_0px_0px_var(--foreground)] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0px_0px_var(--foreground)] active:translate-y-0 active:translate-x-0 active:shadow-none",
   secondary:
-    "bg-surface text-foreground border border-border hover:bg-surface-hover hover:border-border-hover",
+    "bg-surface text-foreground border-2 border-foreground shadow-[2px_2px_0px_0px_var(--foreground)] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0px_0px_var(--foreground)] active:translate-y-0 active:translate-x-0 active:shadow-none",
   ghost:
-    "text-foreground hover:bg-surface-hover",
+    "text-foreground border-2 border-transparent hover:bg-surface-hover hover:border-foreground active:translate-y-0 active:translate-x-0",
   danger:
-    "bg-danger text-danger-foreground hover:bg-danger/90 shadow-sm shadow-danger/20",
+    "bg-danger text-danger-foreground border-2 border-foreground shadow-[2px_2px_0px_0px_var(--foreground)] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0px_0px_var(--foreground)] active:translate-y-0 active:translate-x-0 active:shadow-none",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5 rounded-md",
-  md: "h-10 px-4 text-sm gap-2 rounded-lg",
-  lg: "h-12 px-6 text-base gap-2.5 rounded-xl",
+  sm: "h-8 px-3 text-xs gap-1.5 rounded-none",
+  md: "h-10 px-4 text-sm gap-2 rounded-none",
+  lg: "h-12 px-6 text-base gap-2.5 rounded-none",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

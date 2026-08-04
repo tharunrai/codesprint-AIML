@@ -33,14 +33,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full h-10 px-3 rounded-lg text-sm
-              bg-surface border border-border text-foreground
-              placeholder:text-muted
-              transition-colors duration-150
-              focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+              w-full h-10 px-3 rounded-none text-sm font-semibold
+              bg-surface border-2 border-foreground text-foreground
+              placeholder:text-muted-foreground
+              transition-all duration-150
+              focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_var(--foreground)] focus:-translate-y-0.5 focus:-translate-x-0.5
               disabled:opacity-50 disabled:cursor-not-allowed
               ${icon ? "pl-10" : ""}
-              ${error ? "border-danger focus:ring-danger/40 focus:border-danger" : ""}
+              ${error ? "border-danger focus:shadow-[4px_4px_0px_0px_var(--danger)]" : ""}
               ${className}
             `}
             {...props}

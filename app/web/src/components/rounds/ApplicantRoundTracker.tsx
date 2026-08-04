@@ -189,8 +189,8 @@ export default function ApplicantRoundTracker({ drive, applications, setApplicat
                   px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer
                   ${
                     active
-                      ? "bg-primary text-white shadow-sm font-semibold"
-                      : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                      ? "bg-primary text-white shadow-sm font-bold"
+                      : "text-foreground font-semibold hover:bg-surface-hover"
                   }
                 `}
               >
@@ -198,7 +198,7 @@ export default function ApplicantRoundTracker({ drive, applications, setApplicat
                 <span
                   className={`
                     px-1.5 py-0.2 rounded-full text-[10px] font-bold
-                    ${active ? "bg-white/20 text-white" : "bg-surface-hover text-muted"}
+                    ${active ? "bg-white/20 text-white" : "bg-muted text-foreground"}
                   `}
                 >
                   {count}

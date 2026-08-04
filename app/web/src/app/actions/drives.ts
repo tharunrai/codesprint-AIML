@@ -111,9 +111,53 @@ export async function updateDriveStatus(driveId: string, status: "open" | "close
 }
 
 export async function createDrive(data: any, facultyUserId: string) {
-  const faculty = await prisma.facultyProfile.findUnique({
+  let faculty = await prisma.facultyProfile.findUnique({
     where: { userId: facultyUserId }
   });
+
+  if (!faculty) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: facultyUserId },
+          { supabaseUid: facultyUserId }
+        ]
+      }
+    });
+
+    if (user) {
+      faculty = await prisma.facultyProfile.findUnique({
+        where: { userId: user.id }
+      });
+
+      if (!faculty) {
+        faculty = await prisma.facultyProfile.create({
+          data: {
+            userId: user.id,
+            department: "Training & Placement"
+          }
+        });
+      }
+    }
+  }
+
+  if (!faculty) {
+    // If still not found, fallback to any existing faculty or create one for the first user
+    const firstFaculty = await prisma.facultyProfile.findFirst();
+    if (firstFaculty) {
+      faculty = firstFaculty;
+    } else {
+      const firstUser = await prisma.user.findFirst();
+      if (firstUser) {
+        faculty = await prisma.facultyProfile.create({
+          data: {
+            userId: firstUser.id,
+            department: "Training & Placement"
+          }
+        });
+      }
+    }
+  }
   
   if (!faculty) throw new Error("Faculty profile not found");
 

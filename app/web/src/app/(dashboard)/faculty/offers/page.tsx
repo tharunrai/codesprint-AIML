@@ -231,22 +231,39 @@ export default function FacultyOffersPage() {
                         </div>
                       </div>
 
-                      {/* Preview box */}
+                      {/* Live PDF Offer Letter Preview */}
                       {isPreviewing && (
-                        <div className="p-4 rounded-xl bg-surface border border-border space-y-2 animate-fade-in text-xs font-mono">
+                        <div className="p-4 rounded-xl bg-surface border border-border space-y-3 animate-fade-in text-xs">
                           <div className="flex items-center justify-between border-b border-border pb-2">
-                            <span className="font-bold text-foreground">
-                              📄 PREVIEW: {offer.fileName}
+                            <span className="font-bold text-sm text-foreground">
+                              📄 Student Uploaded Offer Letter: {offer.fileName || "Offer_Letter.pdf"}
                             </span>
-                            <span className="text-[10px] text-primary font-semibold uppercase bg-primary/10 px-2 py-0.5 rounded">
-                              TPC Audit View
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-primary font-semibold uppercase bg-primary/10 px-2 py-0.5 rounded">
+                                TPC Audit View
+                              </span>
+                              <a
+                                href={offer.fileUrl || "/sample-offer.pdf"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                              >
+                                Open PDF ↗
+                              </a>
+                            </div>
                           </div>
-                          <p className="text-muted-foreground">
-                            Extracted Candidate: {offer.studentName} ({offer.rollNumber})
-                          </p>
-                          <p className="text-muted-foreground">
-                            Verified Role: {offer.role} @ {offer.companyName} ({formatCTC(offer.packageLPA)})
+
+                          {/* Embedded PDF iframe player */}
+                          <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-border bg-slate-900 shadow-inner">
+                            <iframe
+                              src={`${offer.fileUrl || "/sample-offer.pdf"}#toolbar=1&navpanes=0`}
+                              title={offer.fileName || "Offer Letter"}
+                              className="w-full h-full border-0"
+                            />
+                          </div>
+
+                          <p className="text-muted-foreground font-mono text-[11px]">
+                            Candidate: {offer.studentName} ({offer.rollNumber} • {offer.branch}) | Role: {offer.role} @ {offer.companyName} ({formatCTC(offer.packageLPA)})
                           </p>
                         </div>
                       )}

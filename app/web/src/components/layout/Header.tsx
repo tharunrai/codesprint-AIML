@@ -32,13 +32,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-30 bg-surface border-b-2 border-foreground">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Title area */}
         <div>
-          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+            <p className="text-sm font-semibold text-muted-foreground">{subtitle}</p>
           )}
         </div>
 

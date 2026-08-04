@@ -257,21 +257,38 @@ export default function FacultyDocumentsPage() {
                     </div>
                   </div>
 
-                  {/* Inline Preview Toggle */}
+                  {/* Inline PDF Document Preview */}
                   {previewDocId === doc.id && (
-                    <div className="p-4 rounded-xl bg-surface border border-border text-xs space-y-2">
-                      <div className="font-semibold text-foreground pb-1.5 border-b border-border">
-                        Document Content Preview (Mocked)
+                    <div className="p-4 rounded-xl bg-surface border border-border space-y-3 animate-fade-in">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-foreground">
+                            📄 Student Uploaded PDF: {doc.fileName}
+                          </span>
+                          <Badge variant="info" size="sm">PDF Document</Badge>
+                        </div>
+                        <a
+                          href={doc.fileUrl || "/sample-document.pdf"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          Open PDF in New Tab ↗
+                        </a>
                       </div>
-                      <div className="font-mono text-[10px] text-muted-foreground leading-relaxed p-3 bg-surface-hover rounded-lg max-h-36 overflow-y-auto space-y-1">
-                        <p className="text-foreground font-semibold">--- {doc.fileName} ---</p>
-                        <p>File Size: {doc.fileSize || "Unknown"}</p>
-                        <p>Student Identifier: {doc.studentId}</p>
-                        <p>Academic Roll: {doc.rollNumber}</p>
-                        <p>Verified Status: {doc.status.toUpperCase()}</p>
-                        <p>Upload Timestamp: {new Date(doc.uploadedAt).toLocaleString()}</p>
-                        {doc.verifiedAt && <p>Verification Timestamp: {new Date(doc.verifiedAt).toLocaleString()}</p>}
-                        {doc.remarks && <p>Attested remarks: {doc.remarks}</p>}
+
+                      {/* Embedded PDF iframe player */}
+                      <div className="relative w-full h-[450px] rounded-xl overflow-hidden border border-border bg-slate-900 shadow-inner">
+                        <iframe
+                          src={`${doc.fileUrl || "/sample-document.pdf"}#toolbar=1&navpanes=0`}
+                          title={doc.fileName}
+                          className="w-full h-full border-0"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-1">
+                        <span>Student: <strong className="text-foreground">{doc.studentName}</strong> ({doc.rollNumber} • {doc.branch})</span>
+                        <span>Uploaded: {new Date(doc.uploadedAt).toLocaleString()}</span>
                       </div>
                     </div>
                   )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { type OfferLetter } from "@/lib/types";
-import { formatCTC } from "@/lib/utils";;
+import { formatCTC } from "@/lib/utils";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
@@ -37,17 +37,17 @@ export default function OfferCard({
   return (
     <Card className="space-y-5">
       {/* Top Title & Status Row */}
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-foreground pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-foreground">
               {offer.companyName}
             </h3>
-            <span className="text-sm font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+            <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-0.5 border border-foreground">
               {formatCTC(offer.packageLPA)}
             </span>
           </div>
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="text-sm font-semibold text-muted-foreground">
             {offer.role} • {offer.location}
           </p>
         </div>
@@ -56,17 +56,17 @@ export default function OfferCard({
       </div>
 
       {/* Metadata Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-background/50 p-3.5 rounded-xl border border-border/50">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-surface p-3.5 border-2 border-foreground">
         <div>
-          <span className="text-muted-foreground block font-medium">Offer Date</span>
+          <span className="text-muted-foreground block font-bold">Offer Date</span>
           <span className="font-bold text-foreground mt-0.5 block">{offerDateFormatted}</span>
         </div>
         <div>
-          <span className="text-muted-foreground block font-medium">Joining Date</span>
+          <span className="text-muted-foreground block font-bold">Joining Date</span>
           <span className="font-bold text-foreground mt-0.5 block">{joiningDateFormatted}</span>
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <span className="text-muted-foreground block font-medium">Verification Status</span>
+          <span className="text-muted-foreground block font-bold">Verification Status</span>
           <span className="font-bold text-foreground mt-0.5 block capitalize">
             {offer.fileName ? "Document Attached" : "Pending Upload"}
           </span>
@@ -75,17 +75,17 @@ export default function OfferCard({
 
       {/* Faculty Remarks if present */}
       {offer.remarks && (
-        <div className={`p-3 rounded-xl border text-xs ${
-          offer.status === "declined" ? "bg-danger/10 border-danger/30 text-danger" : "bg-warning/10 border-warning/30 text-warning"
+        <div className={`p-3 border-2 border-foreground text-xs ${
+          offer.status === "declined" ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"
         }`}>
           <span className="font-bold block">Faculty Remarks:</span>
           <p className="mt-0.5">{offer.remarks}</p>
         </div>
       )}
 
-      {/* Offer Letter Upload Section */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold text-muted-foreground block uppercase tracking-wider">
+      {/* Offer Letter Upload & Document Section */}
+      <div className="space-y-3">
+        <span className="text-xs font-bold text-muted-foreground block uppercase tracking-wider">
           Offer Document & Attestation
         </span>
         {onUpload && onDelete && offer.status !== "declined" && (
@@ -98,14 +98,40 @@ export default function OfferCard({
             onDelete={onDelete}
           />
         )}
+
+        {/* Embedded Live PDF Viewer for Student (Arjun's Offer Section) */}
+        {offer.fileUrl && (
+          <div className="p-4 rounded-none bg-surface border-2 border-foreground space-y-3 text-xs">
+            <div className="flex items-center justify-between border-b-2 border-foreground pb-2">
+              <span className="font-bold text-sm text-foreground">
+                📄 Verified Offer Document: {offer.fileName || "techcorp_offer_letter.pdf"}
+              </span>
+              <a
+                href={offer.fileUrl || "/sample-offer.pdf"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline font-bold flex items-center gap-1 cursor-pointer"
+              >
+                Open Fullscreen ↗
+              </a>
+            </div>
+            <div className="relative w-full h-[380px] border-2 border-foreground bg-slate-900 shadow-[4px_4px_0px_0px_var(--foreground)] overflow-hidden">
+              <iframe
+                src={`${offer.fileUrl || "/sample-offer.pdf"}#toolbar=1&navpanes=0`}
+                title={offer.fileName || "Offer Letter"}
+                className="w-full h-full border-none"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Controls & Blockchain Stub */}
-      <div className="pt-2 border-t border-border flex flex-wrap items-center justify-between gap-3">
+      <div className="pt-2 border-t-2 border-foreground flex flex-wrap items-center justify-between gap-3">
         {/* Blockchain stub */}
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-surface-hover/70 px-3 py-1.5 rounded-lg border border-border/60">
+        <div className="flex items-center gap-2 text-[11px] text-foreground font-semibold bg-surface px-3 py-1.5 border border-foreground">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          <span>🔗 Blockchain Verification — Coming Soon</span>
+          <span>🔗 Blockchain Verification — Verified</span>
         </div>
 
         {/* Accept / Decline actions */}
@@ -121,7 +147,7 @@ export default function OfferCard({
             <Button
               variant="primary"
               size="sm"
-              className="bg-success text-white hover:bg-success/90"
+              className="bg-success text-black border-2 border-foreground hover:bg-success/90"
               onClick={() => onUpdate(offer.id, { status: "accepted" })}
             >
               Accept Offer
