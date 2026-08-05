@@ -28,7 +28,7 @@ export async function getStudentOffers(userId: string): Promise<OfferLetter[]> {
     });
   }
 
-  const mapped = applications.map(app => ({
+  const mapped: OfferLetter[] = applications.map(app => ({
     id: app.id,
     studentId: userId,
     companyName: app.drive.companyName,
@@ -80,7 +80,7 @@ export async function getAllOffers(): Promise<OfferLetter[]> {
     }
   });
 
-  return applications.map(app => ({
+  return applications.map((app): OfferLetter => ({
     id: app.id,
     studentId: app.student.userId,
     studentName: app.student.user.fullName,
